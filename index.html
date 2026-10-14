@@ -1,0 +1,955 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture Viewer</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233b4bd8'/%3E%3Ccircle cx='10' cy='10' r='3.5' fill='white'/%3E%3Ccircle cx='22' cy='22' r='3.5' fill='white'/%3E%3Cpath d='M10 10 L22 10 L22 22' stroke='white' stroke-width='2.5' fill='none'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Tokens. Signal = the selected step, Trace = what the step touches. */
+  :root {
+    --canvas: #edf1f6; --grid: #dde4ed; --panel: #ffffff; --panel-2: #f6f8fb;
+    --ink: #16202e; --ink-2: #4d5d72; --ink-3: #8593a6; --line: #dfe5ee;
+    --signal: #3b4bd8; --signal-ink: #ffffff; --signal-soft: #e9ebfc; --signal-glow: rgba(59, 75, 216, .35);
+    --trace: #0b8f6a; --trace-soft: #e2f4ee;
+    --code-bg: #eef1f6; --shadow: 0 1px 2px rgba(22, 32, 46, .05), 0 8px 24px -12px rgba(22, 32, 46, .18);
+    --node-fill: #ffffff; --node-border: #b9c4d3; --edge: #8a98ab; --cluster-fill: rgba(255, 255, 255, .55); --cluster-border: #c5cfdc; --edge-label-bg: #334155;
+    --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --canvas: #0e1520; --grid: #172231; --panel: #141c28; --panel-2: #19222f;
+      --ink: #e6ebf2; --ink-2: #a9b5c5; --ink-3: #6f7d90; --line: #243042;
+      --signal: #8d97ff; --signal-ink: #0e1520; --signal-soft: rgba(141, 151, 255, .14); --signal-glow: rgba(141, 151, 255, .45);
+      --trace: #3fd0a4; --trace-soft: rgba(63, 208, 164, .12);
+      --code-bg: #1f2a39; --shadow: 0 8px 24px -12px rgba(0, 0, 0, .6);
+      --node-fill: #18212e; --node-border: #3a4a60; --edge: #5f6f86; --cluster-fill: rgba(24, 33, 46, .55); --cluster-border: #2c3a4e; --edge-label-bg: #3d4d66;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --canvas: #0e1520; --grid: #172231; --panel: #141c28; --panel-2: #19222f;
+    --ink: #e6ebf2; --ink-2: #a9b5c5; --ink-3: #6f7d90; --line: #243042;
+    --signal: #8d97ff; --signal-ink: #0e1520; --signal-soft: rgba(141, 151, 255, .14); --signal-glow: rgba(141, 151, 255, .45);
+    --trace: #3fd0a4; --trace-soft: rgba(63, 208, 164, .12);
+    --code-bg: #1f2a39; --shadow: 0 8px 24px -12px rgba(0, 0, 0, .6);
+    --node-fill: #18212e; --node-border: #3a4a60; --edge: #5f6f86; --cluster-fill: rgba(24, 33, 46, .55); --cluster-border: #2c3a4e; --edge-label-bg: #3d4d66;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--canvas); color: var(--ink); font: 14px/1.5 var(--sans); display: flex; flex-direction: column; overflow: hidden; }
+  :focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+  code { font: 12px/1.5 var(--mono); background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+
+  /* Top bar */
+  .bar { display: flex; align-items: center; gap: 16px; padding: 10px 20px; background: var(--panel); border-bottom: 1px solid var(--line); min-height: 56px; }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
+  .brand .mark { width: 28px; height: 28px; border-radius: 8px; background: var(--signal); flex: none; display: grid; place-items: center; }
+  .brand .mark svg { width: 16px; height: 16px; }
+  .brand h1 { font-size: 15px; font-weight: 600; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.005em; }
+  .brand .where { font-size: 12.5px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tools { display: flex; align-items: center; gap: 8px; flex: none; }
+  .group { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); overflow: hidden; }
+  .group button { border: 0; border-radius: 0; background: transparent; }
+  .group button + button, .group span + button, .group button + span { border-left: 1px solid var(--line); }
+  .group .zoom { font: 12px var(--mono); color: var(--ink-2); padding: 0 10px; display: grid; place-items: center; min-width: 52px; }
+  button, select { font: 500 13px/1 var(--sans); color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; height: 32px; padding: 0 12px; cursor: pointer; transition: background .15s, border-color .15s; }
+  button:hover, select:hover { border-color: var(--ink-3); }
+  .group button:hover { background: var(--line); }
+  button svg { width: 15px; height: 15px; vertical-align: -3px; }
+  button.icon { width: 32px; padding: 0; display: grid; place-items: center; }
+  select { max-width: 220px; padding-right: 8px; }
+  .live { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+  .live i { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
+  .live.on i { background: var(--trace); box-shadow: 0 0 0 3px var(--trace-soft); }
+
+  main { flex: 1; display: flex; min-height: 0; }
+
+  /* Canvas: engineering grid paper */
+  #diagramPane { flex: 1; overflow: hidden; min-width: 0; position: relative; touch-action: none; cursor: grab;
+    background-color: var(--canvas);
+    background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 24px 24px; }
+  #diagramPane.dragging { cursor: grabbing; }
+  #diagram { position: absolute; inset: 0; }
+  #diagram svg { display: block; width: 100%; height: 100%; }
+  #diagram > .empty { position: relative; }
+
+  /* Minimap: the whole diagram with the visible area outlined */
+  #minimap { position: absolute; left: 16px; bottom: 16px; width: 150px; opacity: .92; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); padding: 6px; cursor: pointer; transition: opacity .2s; }
+  #minimap[hidden] { display: none; }
+  #minimap.full { opacity: .0; pointer-events: none; }
+  #minimap svg { display: block; width: 100%; height: auto; pointer-events: none; }
+  #minimap .view { position: absolute; border: 2px solid var(--signal); border-radius: 3px; background: color-mix(in srgb, var(--signal) 10%, transparent); pointer-events: none; }
+  .hint { position: absolute; right: 16px; bottom: 16px; font-size: 12px; color: var(--ink-3); background: color-mix(in srgb, var(--panel) 85%, transparent); padding: 4px 10px; border-radius: 6px; pointer-events: none; }
+  .empty { max-width: 460px; margin: 12vh auto; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 28px; box-shadow: var(--shadow); }
+  .empty h2 { margin: 0 0 8px; font-size: 17px; }
+  .empty p { margin: 0 0 14px; color: var(--ink-2); }
+  .empty.error h2 { color: #d9480f; }
+
+  /* Sidebar */
+  aside { width: 420px; max-width: 46vw; background: var(--panel); border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+  .side-head { padding: 18px 20px 14px; border-bottom: 1px solid var(--line); }
+  .side-head h2 { font-size: 16px; font-weight: 600; margin: 0; letter-spacing: -.01em; }
+  .side-head .sub { color: var(--ink-3); font-size: 12.5px; margin-top: 2px; }
+  .progress { display: flex; align-items: center; gap: 10px; margin: 14px 0 12px; }
+  .progress .track { flex: 1; height: 4px; border-radius: 4px; background: var(--line); overflow: hidden; }
+  .progress .fill { height: 100%; width: 0; background: var(--signal); border-radius: 4px; transition: width .3s ease; }
+  .progress .count { font: 12px var(--mono); color: var(--ink-2); min-width: 46px; text-align: right; }
+  .transport { display: flex; gap: 8px; }
+  .transport .next { flex: 1; background: var(--signal); border-color: var(--signal); color: var(--signal-ink); }
+  .transport .next:hover { filter: brightness(1.08); border-color: var(--signal); }
+  .transport .play[aria-pressed="true"] { background: var(--signal-soft); border-color: var(--signal); color: var(--signal); }
+
+  #component { display: none; margin-top: 14px; padding: 12px 14px; border-radius: 10px; background: var(--trace-soft); border: 1px solid color-mix(in srgb, var(--trace) 40%, transparent); }
+  #component.show { display: block; }
+  #component .what { font-weight: 600; }
+  #component .meta { color: var(--ink-2); font-size: 12.5px; margin-top: 2px; }
+  #component .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  #component .chips button { height: 26px; padding: 0 10px 0 4px; font-size: 12px; border-radius: 13px; background: var(--panel); display: inline-flex; align-items: center; gap: 6px; }
+  #component .chips button b { font: 600 11px/1 var(--mono); min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; display: grid; place-items: center; background: var(--trace); color: var(--panel); }
+
+  /* Timeline: the steps are a real sequence, so they sit on a rail */
+  #steps { list-style: none; margin: 0; padding: 12px 12px 24px; overflow: auto; flex: 1; position: relative; }
+  #steps li { position: relative; display: grid; grid-template-columns: 36px 1fr; column-gap: 12px; padding: 7px 10px 7px 6px; border-radius: 10px; cursor: pointer; }
+  #steps li::before { content: ""; position: absolute; left: 23.5px; top: 0; bottom: 0; width: 1.5px; background: var(--line); }
+  #steps li:first-child::before { top: 50%; } #steps li:last-child::before { bottom: 50%; }
+  #steps li:hover { background: var(--panel-2); }
+  .token { position: relative; z-index: 1; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--panel); border: 1.5px solid var(--line); color: var(--ink-2); font: 600 13px/1 var(--mono); letter-spacing: -.02em; transition: background .2s, border-color .2s, box-shadow .2s; align-self: start; }
+  #steps li .name { font-weight: 500; align-self: center; min-height: 36px; display: flex; align-items: center; }
+  #steps li.past .token { border-color: var(--signal); color: var(--signal); }
+  #steps li.past::before { background: var(--signal); }
+  #steps li.sel { background: var(--signal-soft); }
+  #steps li.sel .token { background: var(--signal); border-color: var(--signal); color: var(--signal-ink); box-shadow: 0 0 0 5px var(--signal-soft), 0 0 18px var(--signal-glow); }
+  #steps li.sel .name { font-weight: 600; }
+  #steps li.touch { background: var(--trace-soft); }
+  #steps li.touch .token { border-color: var(--trace); color: var(--trace); }
+  #steps.filtering li:not(.touch) { opacity: .45; }
+  .detail { display: none; grid-column: 2; margin: 4px 0 6px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; font-size: 13px; }
+  #steps li.sel .detail { display: block; animation: open .2s ease; }
+  .detail dt { color: var(--ink-3); font-size: 12px; font-weight: 500; margin-top: 10px; }
+  .detail dt:first-child { margin-top: 0; }
+  .detail dd { margin: 2px 0 0; overflow-wrap: anywhere; color: var(--ink); }
+  @keyframes open { from { opacity: 0; transform: translateY(-4px); } }
+
+  .legend { display: flex; gap: 18px; padding: 10px 20px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-2); }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .legend i { width: 18px; height: 0; border-top: 3px solid var(--signal); border-radius: 2px; }
+  .legend .t i { border-top: 2px dashed var(--trace); }
+  .legend .keys { margin-left: auto; color: var(--ink-3); }
+
+  #drop { display: none; position: fixed; inset: 12px; border: 2px dashed var(--signal); border-radius: 16px; background: color-mix(in srgb, var(--panel) 85%, transparent); color: var(--signal); font-size: 18px; font-weight: 600; align-items: center; justify-content: center; z-index: 10; }
+  #drop.show { display: flex; }
+
+  /* Diagram highlighting */
+  :is(#diagram, #minimap) svg .node, :is(#diagram, #minimap) svg .cluster { cursor: pointer; }
+  :is(#diagram, #minimap) svg :is(.node, .cluster, .edgePaths path, g.edgeLabel) { transition: opacity .25s; }
+  :is(#diagram, #minimap) svg.vw-active :is(.node, .cluster, .edgePaths path, g.edgeLabel):not(.vw-p, .vw-s) { opacity: .2; }
+  :is(#diagram, #minimap) svg .node:hover :is(rect, polygon, path, circle, ellipse) { stroke: var(--ink-3) !important; }
+  :is(#diagram, #minimap) svg .node.vw-p :is(rect, polygon, path, circle, ellipse) { stroke: var(--signal) !important; stroke-width: 2.5px !important; fill: var(--signal-soft) !important; }
+  :is(#diagram, #minimap) svg .node.vw-p { filter: drop-shadow(0 0 10px var(--signal-glow)); }
+  :is(#diagram, #minimap) svg .node.vw-s :is(rect, polygon, path, circle, ellipse) { stroke: var(--trace) !important; stroke-width: 2px !important; stroke-dasharray: 5 3; }
+  :is(#diagram, #minimap) svg .cluster.vw-p > rect { stroke: var(--signal) !important; stroke-width: 2.5px !important; }
+  :is(#diagram, #minimap) svg .cluster.vw-s > rect { stroke: var(--trace) !important; stroke-width: 1.5px !important; stroke-dasharray: 7 5; }
+  :is(#diagram, #minimap) svg path.vw-p { stroke: var(--signal) !important; stroke-width: 3px !important; stroke-dasharray: 9 6; animation: flow .6s linear infinite; }
+  :is(#diagram, #minimap) svg path.vw-s { stroke: var(--trace) !important; stroke-width: 2px !important; }
+  /* Twice the size Mermaid laid them out at, scaled around their own centre so they stay on their arrow. */
+  :is(#diagram, #minimap) svg .edgeLabel foreignObject { overflow: visible; transform-box: fill-box; transform-origin: center; scale: var(--arrow-label-scale, 2); }
+  :is(#diagram, #minimap) svg g.edgeLabel.vw-p .labelBkg { background: var(--signal) !important; }
+  :is(#diagram, #minimap) svg g.edgeLabel.vw-p .labelBkg * { color: var(--signal-ink) !important; }
+  :is(#diagram, #minimap) svg g.edgeLabel.vw-s .labelBkg { background: var(--trace) !important; }
+  @keyframes flow { to { stroke-dashoffset: -15; } }
+  @media (prefers-reduced-motion: reduce) { :is(#diagram, #minimap) svg path.vw-p, #steps li.sel .detail { animation: none; } }
+
+  @media (max-width: 860px) {
+    .bar { flex-wrap: wrap; padding: 10px 16px; }
+    .tools { flex-wrap: wrap; }
+    .brand { flex-basis: 100%; }
+    .brand .where, .legend .keys, select, .live { display: none; }
+    main { flex-direction: column; }
+    aside { width: 100%; max-width: none; height: 48vh; border-left: 0; border-top: 1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="brand">
+    <span class="mark" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.6"><circle cx="4" cy="4" r="2" fill="#fff"/><circle cx="12" cy="12" r="2" fill="#fff"/><path d="M4 4h8v8"/></svg></span>
+    <div style="min-width:0">
+      <h1 id="docTitle">Architecture Viewer</h1>
+      <div class="where" id="docSub">Diagram and steps from one Markdown file</div>
+    </div>
+  </div>
+  <div class="tools">
+    <select id="diagramSel" title="Choose diagram" hidden></select>
+    <select id="tableSel" title="Choose step table" hidden></select>
+    <select id="layoutSel" title="Diagram layout"><option value="dagre">Standard layout</option><option value="elk">Compact layout</option></select>
+    <div class="group" role="group" aria-label="Zoom">
+      <button class="icon" id="zoomOut" title="Zoom out" aria-label="Zoom out"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3.5 8h9"/></svg></button>
+      <span class="zoom" id="zoomLabel">100%</span>
+      <button class="icon" id="zoomIn" title="Zoom in" aria-label="Zoom in"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3.5 8h9M8 3.5v9"/></svg></button>
+      <button id="zoomFit" title="Show the whole diagram (F)">Fit</button>
+    </div>
+    <button class="icon" id="themeBtn" title="Switch light or dark" aria-label="Switch light or dark"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11a5.5 5.5 0 0 0 0-11z" fill="currentColor"/></svg></button>
+    <button id="openBtn" title="Open a Markdown file from disk">Open file</button>
+    <input id="fileInput" type="file" accept=".md,.markdown,.txt" hidden>
+    <span class="live" id="live"><i></i><span>No source</span></span>
+  </div>
+</header>
+<main>
+  <section id="diagramPane" aria-label="Diagram">
+    <div id="diagram"></div>
+    <div id="minimap" hidden title="Click to move there"><div class="view"></div></div>
+    <span class="hint" id="hint" hidden>Drag to move. Pinch or Ctrl + scroll to zoom.</span>
+  </section>
+  <aside aria-label="Steps">
+    <div class="side-head">
+      <h2 id="stepsTitle">Steps</h2>
+      <div class="sub" id="stepsSub"></div>
+      <div class="progress"><div class="track"><div class="fill" id="progressFill"></div></div><span class="count" id="pos">0 / 0</span></div>
+      <div class="transport">
+        <button id="prevBtn" title="Previous step (←)">Back</button>
+        <button id="nextBtn" class="next" title="Next step (→)">Next step</button>
+        <button id="playBtn" class="play" aria-pressed="false" title="Play through all steps (Space)">Play</button>
+        <button id="clearBtn" title="Clear the highlight (Esc)">Clear</button>
+      </div>
+      <div id="component" aria-live="polite"></div>
+    </div>
+    <ol id="steps"></ol>
+    <div class="legend"><span><i></i>Step</span><span class="t"><i></i>Touched by it</span><span class="keys">← → to step, Space to play</span></div>
+  </aside>
+</main>
+<div id="drop">Drop the Markdown file to load it</div>
+
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+
+const $ = (id) => document.getElementById(id);
+
+/* ---------------- Markdown parsing ---------------- */
+
+function splitRow(line) {
+  let s = line.trim();
+  if (s.startsWith("|")) s = s.slice(1);
+  if (s.endsWith("|") && !s.endsWith("\\|")) s = s.slice(0, -1);
+  const cells = []; let cur = ""; let inCode = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === "\\" && s[i + 1] === "|") { cur += "|"; i++; continue; }
+    if (c === "`") inCode = !inCode;
+    if (c === "|" && !inCode) { cells.push(cur.trim()); cur = ""; continue; }
+    cur += c;
+  }
+  cells.push(cur.trim());
+  return cells;
+}
+
+function parseMarkdown(text) {
+  const lines = text.split(/\r?\n/);
+  const doc = { title: "", diagrams: [], tables: [] };
+  let heading = "";
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const fence = line.match(/^\s*(`{3,}|~{3,})\s*(\S*)/);
+    if (fence) {
+      const close = new RegExp("^\\s*" + fence[1][0] + "{" + fence[1].length + ",}\\s*$");
+      const body = [];
+      for (i++; i < lines.length && !close.test(lines[i]); i++) body.push(lines[i]);
+      if (fence[2].toLowerCase() === "mermaid") doc.diagrams.push({ heading, src: body.join("\n") });
+      continue;
+    }
+    const h = line.match(/^(#{1,6})\s+(.*?)\s*#*\s*$/);
+    if (h) {
+      if (h[1].length === 1 && !doc.title) doc.title = stripMd(h[2]);
+      heading = stripMd(h[2]);
+      continue;
+    }
+    if (/^\s*\|/.test(line) && i + 1 < lines.length && /^\s*\|?\s*:?-{3,}/.test(lines[i + 1])) {
+      const header = splitRow(line).map(stripMd);
+      const rows = [];
+      for (i += 2; i < lines.length && /^\s*\|/.test(lines[i]); i++) rows.push(splitRow(lines[i]));
+      i--;
+      doc.tables.push({ heading, header, rows });
+    }
+  }
+  return doc;
+}
+
+function stripMd(s) { return s.replace(/\*\*|__|`/g, "").trim(); }
+function esc(s) { return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+function inlineMd(s) {
+  const parts = s.split(/(`[^`]*`)/);
+  return parts.map((p) => p.startsWith("`") && p.endsWith("`") && p.length > 1
+    ? `<code>${esc(p.slice(1, -1))}</code>`
+    : esc(p).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")).join("");
+}
+
+/* ---------------- Step keys ---------------- */
+
+const CIRCLED = "⓪①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳";
+// "④-⑧" in a label means ④ ⑤ ⑥ ⑦ ⑧.
+function expandRanges(text) {
+  return text.replace(/([⓪①-⑳])\s*[-–]\s*([⓪①-⑳])/g, (m, a, b) => {
+    const i = CIRCLED.indexOf(a), j = CIRCLED.indexOf(b);
+    return i < j ? CIRCLED.slice(i, j + 1).split("").join(" ") : m;
+  });
+}
+const keyRe = new Map();
+function hasKey(text, key) {
+  if (!key) return false;
+  let re = keyRe.get(key);
+  if (!re) {
+    re = new RegExp("(^|[^\\p{L}\\p{N}_])" + key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?![\\p{L}\\p{N}_])", "u");
+    keyRe.set(key, re);
+  }
+  return re.test(expandRanges(text));
+}
+// "⑫a" -> "12a", "Ⓢ" -> "S": the circled glyphs are tiny in most UI fonts.
+function displayKey(key) {
+  return key.replace(/[⓪①-⑳]/g, (c) => String(CIRCLED.indexOf(c))).replace(/[Ⓐ-Ⓩ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x24B6 + 65));
+}
+function isKeyCell(c) { return c && c.length <= 6 && !/\s/.test(c); }
+
+// Pick the diagram, table and key column that fit best. Score = distinct matching keys × share of rows that match.
+// Real step keys are distinct and nearly every row matches; columns like "Environment" repeat one value
+// (E1, E1, …) and match only some rows, so they score low even when those values appear in the diagram.
+function chooseSources(doc, forcedDiagram, forcedTable) {
+  let best = null;
+  doc.diagrams.forEach((d, di) => {
+    if (forcedDiagram != null && di !== forcedDiagram) return;
+    doc.tables.forEach((t, ti) => {
+      if (forcedTable != null && ti !== forcedTable) return;
+      if (!t.rows.length) return;
+      for (let col = 0; col < t.header.length; col++) {
+        const hits = t.rows.map((r) => stripMd(r[col] || "")).filter((c) => isKeyCell(c) && hasKey(d.src, c));
+        const distinct = new Set(hits).size;
+        if (distinct < 2) continue;
+        const score = distinct * (hits.length / t.rows.length);
+        if (!best || score > best.score) best = { di, ti, col, score };
+      }
+    });
+  });
+  return best;
+}
+
+/* ---------------- Diagram model ---------------- */
+
+function labelLines(el) {
+  const fo = el.querySelector("foreignObject");
+  let html;
+  if (fo) html = fo.innerHTML;
+  else {
+    const rows = [...el.querySelectorAll("text tspan.row, text > tspan")];
+    if (rows.length) return rows.map((r) => r.textContent.trim()).filter(Boolean);
+    html = el.textContent;
+  }
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html.replace(/<br\s*\/?>/gi, "\n");
+  return tmp.textContent.split("\n").map((s) => s.trim()).filter(Boolean);
+}
+
+function tokensOf(text) {
+  return (text.match(/[\w<>{}./-]+/g) || [])
+    .map((t) => t.replace(/[.,:;]+$/, ""))
+    .filter((t) => t.length >= 4 && /[./]/.test(t) && /[A-Za-z]/.test(t) && !t.startsWith("--"));
+}
+
+function buildModel(svg, src) {
+  const prefix = svg.id + "-";
+  const nodes = new Map();
+  svg.querySelectorAll("g.node").forEach((el) => {
+    const m = el.id.match(/flowchart-(.+)-\d+$/);
+    if (!m) return;
+    nodes.set(m[1], { id: m[1], el, kind: "node", lines: labelLines(el) });
+  });
+  svg.querySelectorAll("g.cluster").forEach((el) => {
+    const id = el.id.startsWith(prefix) ? el.id.slice(prefix.length) : el.id;
+    const labelEl = el.querySelector(".cluster-label") || el;
+    nodes.set(id, { id, el, kind: "cluster", lines: labelLines(labelEl) });
+  });
+  for (const n of nodes.values()) n.text = n.lines.join(" ");
+
+  const labels = new Map();
+  svg.querySelectorAll(".edgeLabel .label[data-id]").forEach((el) => labels.set(el.dataset.id, el.closest(".edgeLabel")));
+  const resolve = (pair) => {
+    for (let i = pair.indexOf("_"); i > 0; i = pair.indexOf("_", i + 1)) {
+      const a = pair.slice(0, i), b = pair.slice(i + 1);
+      if (nodes.has(a) && nodes.has(b)) return [a, b];
+    }
+    return [null, null];
+  };
+  const edges = [];
+  svg.querySelectorAll(".edgePaths path, path.flowchart-link").forEach((el) => {
+    if (edges.some((e) => e.el === el)) return;
+    const raw = el.dataset.id || (el.id.startsWith(prefix) ? el.id.slice(prefix.length) : el.id);
+    const m = raw.match(/^L_(.+)_\d+$/);
+    if (!m) return;
+    const [from, to] = resolve(m[1]);
+    const labelEl = labels.get(raw) || null;
+    const text = labelEl ? labelEl.textContent.trim() : "";
+    const dashed = /dotted|dashed/.test(el.getAttribute("class") || "");
+    edges.push({ id: raw, el, labelEl, from, to, text, dashed });
+  });
+
+  // Parent cluster of each node: the smallest cluster box that contains its centre.
+  const clusters = [...nodes.values()].filter((n) => n.kind === "cluster").map((c) => ({ c, b: c.el.getBBox() }));
+  for (const n of nodes.values()) {
+    if (n.kind !== "node") continue;
+    const b = n.el.getBBox(), ctm = n.el.transform.baseVal.consolidate();
+    const x = (ctm ? ctm.matrix.e : 0) + b.x + b.width / 2, y = (ctm ? ctm.matrix.f : 0) + b.y + b.height / 2;
+    const inside = clusters.filter(({ b: r }) => x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height)
+      .sort((p, q) => p.b.width * p.b.height - q.b.width * q.b.height);
+    n.parent = inside.length ? inside[0].c.id : null;
+  }
+
+  // Tokens that name a file, path or endpoint, kept only when at most two components share them.
+  const tokenCount = new Map();
+  for (const n of nodes.values()) {
+    n.tokens = [...new Set(tokensOf(n.text))];
+    n.tokens.forEach((t) => tokenCount.set(t, (tokenCount.get(t) || 0) + 1));
+  }
+  for (const n of nodes.values()) {
+    n.tokens = n.tokens.filter((t) => tokenCount.get(t) <= 2);
+    const first = (n.lines[0] || "").replace(/[⓪①-⑳Ⓢ🔒]/gu, "").split(/[(,:]/)[0].trim();
+    n.title = first.length >= 4 && first.length <= 30 && first.split(/\s+/).length <= 3 ? first : "";
+  }
+
+  // Explicit links: %% @step <key>: NODE_A, NODE_B
+  const overrides = new Map();
+  for (const m of src.matchAll(/^\s*%%\s*@step\s+(\S+)\s*:\s*(.+)$/gm)) {
+    const ids = m[2].split(/[,\s]+/).filter((id) => nodes.has(id));
+    overrides.set(m[1], [...(overrides.get(m[1]) || []), ...ids]);
+  }
+  return { nodes, edges, overrides };
+}
+
+function wordRe(s, flags) { return new RegExp("(^|[^\\p{L}\\p{N}_])" + s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?![\\p{L}\\p{N}_])", flags); }
+
+function buildSteps(model, table, keyCol) {
+  const nameCol = keyCol === 0 ? 1 : 0;
+  const steps = table.rows.map((cells, idx) => ({
+    idx, cells, key: stripMd(cells[keyCol] || ""), name: stripMd(cells[nameCol] || ""),
+    rowText: cells.map(stripMd).join(" "), P: new Set(), S: new Set(), EP: new Set(), ES: new Set(),
+  }));
+  steps.forEach((s, i) => {
+    for (const n of model.nodes.values()) if (hasKey(n.text, s.key)) s.P.add(n.id);
+    (model.overrides.get(s.key) || []).forEach((id) => s.P.add(id));
+    const prev = i > 0 ? steps[i - 1].P : new Set();
+    for (const e of model.edges) {
+      if (hasKey(e.text, s.key)) { s.EP.add(e); [e.from, e.to].forEach((id) => id && s.S.add(id)); }
+      else if (s.P.has(e.from) && (s.P.has(e.to) || prev.has(e.from))) s.EP.add(e);
+      else if (prev.has(e.from) && s.P.has(e.to)) s.EP.add(e);
+    }
+    // One hop out of and into the step's components: what it calls, and what triggers it.
+    for (const e of model.edges) {
+      if (s.EP.has(e) || !e.from || !e.to) continue;
+      if (s.P.has(e.from)) { s.ES.add(e); s.S.add(e.to); }
+      else if (s.P.has(e.to) && model.nodes.get(e.from)?.kind === "node") { s.ES.add(e); s.S.add(e.from); }
+    }
+    for (const n of model.nodes.values()) {
+      if (s.P.has(n.id)) { if (n.parent) s.S.add(n.parent); continue; }
+      const mentioned = n.tokens.some((t) => s.rowText.includes(t))
+        || (n.id.length >= 2 && wordRe(n.id, "u").test(s.rowText))
+        || (n.title && wordRe(n.title, "iu").test(s.rowText));
+      if (mentioned) s.S.add(n.id);
+    }
+    for (const id of s.P) s.S.delete(id);
+  });
+  return { steps, keyCol, nameCol, header: table.header };
+}
+
+/* ---------------- Theme ---------------- */
+
+function storedTheme() { try { return localStorage.getItem("vw-theme"); } catch { return null; } }
+function storeTheme(t) { try { localStorage.setItem("vw-theme", t); } catch { /* private mode */ } }
+if (storedTheme()) document.documentElement.dataset.theme = storedTheme();
+
+function isDark() {
+  const forced = document.documentElement.dataset.theme;
+  return forced ? forced === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+// Text sizes in diagram units. Mermaid lays the boxes out for BOX_FONT, so boxes grow with it.
+// Group (subgraph) titles and arrow labels keep their own size.
+const BOX_FONT = 26, GROUP_FONT = 18, ARROW_LABEL_FONT = 34;
+document.documentElement.style.setProperty("--arrow-label-scale", ARROW_LABEL_FONT / BOX_FONT);
+
+// Mermaid draws with the page's own tokens, so the diagram and the chrome match.
+function initMermaid() {
+  const css = getComputedStyle(document.documentElement);
+  const v = (name) => css.getPropertyValue(name).trim();
+  mermaid.initialize({
+    startOnLoad: false, securityLevel: "strict", theme: "base", layout: state.layout,
+    // Densest ELK placement for flowcharts with long side paths (boxes fill about 16% of the area vs 8% with dagre).
+    elk: { nodePlacementStrategy: "LINEAR_SEGMENTS", mergeEdges: true },
+    flowchart: { curve: "basis", padding: 18, nodeSpacing: 26, rankSpacing: 34, wrappingWidth: 340 },
+    themeVariables: {
+      darkMode: isDark(), fontFamily: v("--sans"), fontSize: `${BOX_FONT}px`,
+      background: v("--canvas"), primaryColor: v("--node-fill"), primaryBorderColor: v("--node-border"),
+      primaryTextColor: v("--ink"), secondaryColor: v("--panel-2"), tertiaryColor: v("--panel-2"),
+      lineColor: v("--edge"), textColor: v("--ink"), mainBkg: v("--node-fill"), nodeBorder: v("--node-border"),
+      clusterBkg: v("--cluster-fill"), clusterBorder: v("--cluster-border"), titleColor: v("--ink-2"),
+      edgeLabelBackground: v("--edge-label-bg"),
+    },
+    // Arrow labels: white on a dark pill. The page CSS scales them to twice the size.
+    themeCSS: `g.edgeLabel .labelBkg { background: ${v("--edge-label-bg")} !important; border-radius: 6px; padding: 0 6px; }
+      g.edgeLabel .labelBkg, g.edgeLabel .labelBkg * { color: #ffffff !important; font-weight: 500; }
+      g.edgeLabel .labelBkg span, g.edgeLabel .labelBkg p { background: transparent !important; }
+      g.edgeLabel rect { fill: transparent !important; }
+      .cluster-label, .cluster-label * { font-size: ${GROUP_FONT}px !important; }`,
+  });
+}
+
+/* ---------------- Rendering and interaction ---------------- */
+
+const state = { text: "", name: "", mtime: null, live: false, forcedDiagram: null, forcedTable: null,
+  model: null, flow: null, svg: null, sel: -1, comp: null, playing: null, renderSeq: 0, layout: "dagre" };
+
+function showMessage(title, html, isError) {
+  $("diagram").innerHTML = `<div class="empty${isError ? " error" : ""}"><h2>${title}</h2>${html}</div>`;
+  $("steps").innerHTML = "";
+  state.svg = null; state.flow = null;
+  updateProgress();
+}
+
+async function render() {
+  const doc = parseMarkdown(state.text);
+  $("docTitle").textContent = doc.title || state.name || "Architecture Viewer";
+  document.title = doc.title || "Architecture Viewer";
+  fillSelect($("diagramSel"), doc.diagrams.map((d, i) => d.heading || `Diagram ${i + 1}`), state.forcedDiagram);
+  fillSelect($("tableSel"), doc.tables.map((t, i) => t.heading || `Table ${i + 1}`), state.forcedTable);
+  if (!doc.diagrams.length) {
+    return showMessage("No diagram in this file", `<p>Add a <code>\`\`\`mermaid</code> code block to <code>${esc(state.name)}</code>. The format is described in <code>format_specification.md</code>.</p>`, true);
+  }
+  const pick = chooseSources(doc, state.forcedDiagram, state.forcedTable);
+  if (!pick) {
+    return showMessage("No step table matches the diagram", "<p>A step table needs one column of short step keys, such as <code>①</code> or <code>3a</code>, and the same keys must appear in the diagram labels. The format is described in <code>format_specification.md</code>.</p>", true);
+  }
+  $("diagramSel").value = pick.di; $("tableSel").value = pick.ti;
+  const diagram = doc.diagrams[pick.di], table = doc.tables[pick.ti];
+  $("docSub").textContent = diagram.heading || state.name;
+  $("stepsTitle").textContent = table.heading || "Steps";
+
+  const seq = ++state.renderSeq;
+  let svgText;
+  try {
+    // Mermaid sizes boxes by measuring text, so the web font must be loaded first or labels get clipped.
+    await Promise.all([`${BOX_FONT}px "IBM Plex Sans"`, `500 ${BOX_FONT}px "IBM Plex Sans"`].map((f) => document.fonts.load(f).catch(() => null)));
+    initMermaid();
+    ({ svg: svgText } = await mermaid.render("vw" + seq, diagram.src));
+  } catch (err) {
+    return showMessage("Mermaid could not draw the diagram", `<p>${esc(String(err.message || err))}</p>`, true);
+  }
+  if (seq !== state.renderSeq) return;
+  $("diagram").innerHTML = svgText;
+  const svg = $("diagram").querySelector("svg");
+  svg.style.maxWidth = "none";
+  svg.setAttribute("width", "100%"); svg.setAttribute("height", "100%");
+  svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  state.svg = svg;
+  const vb = svg.viewBox.baseVal;
+  cam.full = { x: vb.x, y: vb.y, w: vb.width, h: vb.height };
+  state.model = buildModel(svg, diagram.src);
+  state.flow = buildSteps(state.model, table, pick.col);
+  $("stepsSub").textContent = `${state.flow.steps.length} steps. Click a step, or a box in the diagram.`;
+  for (const n of state.model.nodes.values()) {
+    n.el.addEventListener("click", (ev) => { ev.stopPropagation(); selectComponent(n.id); });
+  }
+  svg.addEventListener("click", (e) => { if (!e.target.closest(".node, .cluster")) clearAll(); });
+  renderSteps();
+  $("hint").hidden = false;
+  const keep = cam.cur && seq > 1 && !state.relayout;
+  state.relayout = false;
+  setView(keep ? cam.cur : overview());
+  if (state.sel >= state.flow.steps.length) state.sel = -1;
+  if (state.comp && !state.model.nodes.has(state.comp)) state.comp = null;
+  if (state.sel >= 0) selectStep(state.sel, false);
+  else if (state.comp) selectComponent(state.comp);
+  else { highlight(); updateProgress(); }
+}
+
+function fillSelect(sel, labels, forced) {
+  sel.hidden = labels.length < 2;
+  sel.innerHTML = labels.map((l, i) => `<option value="${i}">${esc(l)}</option>`).join("");
+  if (forced != null) sel.value = forced;
+}
+
+function renderSteps() {
+  const { steps, keyCol, nameCol, header } = state.flow;
+  $("steps").innerHTML = steps.map((s) => {
+    const detail = s.cells.map((c, i) => (i === keyCol || i === nameCol || !c) ? "" :
+      `<dt>${esc(header[i] || "")}</dt><dd>${inlineMd(c)}</dd>`).join("");
+    return `<li data-idx="${s.idx}" tabindex="0"><span class="token" title="${esc(s.key)}">${esc(displayKey(s.key))}</span><span class="name">${inlineMd(s.cells[nameCol] || "")}</span>${detail ? `<dl class="detail">${detail}</dl>` : ""}</li>`;
+  }).join("");
+  $("steps").querySelectorAll("li").forEach((li) => {
+    const go = () => { const idx = +li.dataset.idx; if (idx === state.sel && !state.comp) clearAll(); else selectStep(idx, true); };
+    li.addEventListener("click", (e) => { if (!e.target.closest(".detail")) go(); });
+    li.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); go(); } });
+  });
+}
+
+function highlight(P = new Set(), S = new Set(), EP = new Set(), ES = new Set()) {
+  const { svg, model } = state;
+  if (!svg) return;
+  svg.querySelectorAll(".vw-p, .vw-s").forEach((el) => el.classList.remove("vw-p", "vw-s"));
+  for (const id of S) model.nodes.get(id)?.el.classList.add("vw-s");
+  for (const id of P) { const el = model.nodes.get(id)?.el; el?.classList.remove("vw-s"); el?.classList.add("vw-p"); }
+  for (const e of ES) { e.el.classList.add("vw-s"); e.labelEl?.classList.add("vw-s"); }
+  for (const e of EP) { e.el.classList.add("vw-p"); e.labelEl?.classList.add("vw-p"); }
+  svg.classList.toggle("vw-active", P.size + S.size + EP.size > 0);
+  refreshMinimap();
+}
+
+function updateProgress() {
+  const n = state.flow?.steps.length || 0;
+  $("pos").textContent = `${state.sel >= 0 ? state.sel + 1 : 0} / ${n}`;
+  $("progressFill").style.width = n && state.sel >= 0 ? `${((state.sel + 1) / n) * 100}%` : "0";
+}
+
+function selectStep(idx, scroll) {
+  const s = state.flow.steps[idx];
+  if (!s) return;
+  state.sel = idx; state.comp = null;
+  $("component").className = "";
+  $("steps").classList.remove("filtering");
+  $("steps").querySelectorAll("li").forEach((li) => {
+    const i = +li.dataset.idx;
+    li.classList.toggle("sel", i === idx); li.classList.toggle("past", i < idx); li.classList.remove("touch");
+  });
+  highlight(s.P, s.S, s.EP, s.ES);
+  updateProgress();
+  if (scroll) {
+    $("steps").querySelector(`li[data-idx="${idx}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    focusStep(s);
+  }
+}
+
+function selectComponent(id) {
+  stopPlay();
+  const n = state.model.nodes.get(id);
+  const touching = state.flow.steps.filter((s) => s.P.has(id) || s.S.has(id));
+  state.comp = id; state.sel = -1;
+  highlight(new Set([id]));
+  $("steps").classList.add("filtering");
+  $("steps").querySelectorAll("li").forEach((li) => {
+    li.classList.remove("sel", "past");
+    li.classList.toggle("touch", touching.some((s) => s.idx === +li.dataset.idx));
+  });
+  const name = (n.lines[0] || id).replace(/^[⓪①-⑳Ⓢ]\S*\s*/u, "");
+  const chips = touching.map((s) => `<button data-idx="${s.idx}" title="Show step ${esc(s.key)}"><b>${esc(displayKey(s.key))}</b> ${esc(s.name)}</button>`).join("");
+  $("component").innerHTML = `<div class="what">${esc(name)}</div>` +
+    `<div class="meta">${n.kind === "cluster" ? "Group" : "Component"} <code>${esc(id)}</code>, ` +
+    (touching.length ? `used in ${touching.length} step${touching.length > 1 ? "s" : ""}</div><div class="chips">${chips}</div>` : "not used in any step</div>");
+  $("component").className = "show";
+  $("component").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => selectStep(+b.dataset.idx, true)));
+  $("steps").querySelector("li.touch")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  focusOn([n.el], n.kind === "cluster" ? 0.35 : 0.9);
+  updateProgress();
+}
+
+function clearAll() {
+  stopPlay();
+  state.sel = -1; state.comp = null;
+  $("component").className = "";
+  $("steps").classList.remove("filtering");
+  $("steps").querySelectorAll("li").forEach((li) => li.classList.remove("sel", "touch", "past"));
+  highlight();
+  updateProgress();
+}
+
+function step(delta) {
+  stopPlay();
+  const n = state.flow?.steps.length || 0;
+  if (!n) return;
+  const next = state.sel < 0 ? (delta > 0 ? 0 : n - 1) : Math.min(n - 1, Math.max(0, state.sel + delta));
+  selectStep(next, true);
+}
+
+function togglePlay() {
+  if (state.playing) return stopPlay();
+  const n = state.flow?.steps.length || 0;
+  if (!n) return;
+  if (state.sel < 0 || state.sel >= n - 1) selectStep(0, true);
+  $("playBtn").textContent = "Pause"; $("playBtn").setAttribute("aria-pressed", "true");
+  state.playing = setInterval(() => {
+    if (state.sel >= n - 1) return stopPlay();
+    selectStep(state.sel + 1, true);
+  }, 3000);
+}
+function stopPlay() {
+  if (state.playing) clearInterval(state.playing);
+  state.playing = null;
+  $("playBtn").textContent = "Play"; $("playBtn").setAttribute("aria-pressed", "false");
+}
+
+/* ---------------- Camera: the visible part of the diagram is the SVG viewBox ---------------- */
+
+const cam = { full: null, cur: null, raf: 0 };
+const READABLE = 0.45, MAX_SCALE = 1.0; // with BOX_FONT 26: text between ~12 px and 26 px on screen
+const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function paneSize() { const r = $("diagramPane").getBoundingClientRect(); return { w: r.width || 1, h: r.height || 1 }; }
+function scaleOf(v) { const p = paneSize(); return p.w / v.w; }
+// Grow the box in one direction so it has the pane's aspect ratio: the box is then exactly what is visible.
+function fitAspect(v) {
+  const p = paneSize(), a = p.w / p.h;
+  let { x, y, w, h } = v;
+  if (w / h < a) { const nw = h * a; x -= (nw - w) / 2; w = nw; } else { const nh = w / a; y -= (nh - h) / 2; h = nh; }
+  return { x, y, w, h };
+}
+function overview() {
+  const f = cam.full, pad = Math.max(f.w, f.h) * 0.02;
+  return fitAspect({ x: f.x - pad, y: f.y - pad, w: f.w + 2 * pad, h: f.h + 2 * pad });
+}
+function setView(v) {
+  if (!state.svg) return;
+  cam.cur = fitAspect(v);
+  const c = cam.cur;
+  state.svg.setAttribute("viewBox", `${c.x} ${c.y} ${c.w} ${c.h}`);
+  $("zoomLabel").textContent = `${Math.round(scaleOf(c) * 100)}%`;
+  updateMinimapView();
+}
+function animateTo(target) {
+  cancelAnimationFrame(cam.raf);
+  const to = fitAspect(target), from = cam.cur || to;
+  if (reduceMotion()) return setView(to);
+  const t0 = performance.now(), dur = 550;
+  const ease = (t) => 1 - Math.pow(1 - t, 3);
+  const tick = (now) => {
+    const t = Math.min(1, (now - t0) / dur), k = ease(t);
+    // Interpolate the zoom level geometrically so zooming feels even.
+    const w = from.w * Math.pow(to.w / from.w, k), h = from.h * Math.pow(to.h / from.h, k);
+    const cx = from.x + from.w / 2 + (to.x + to.w / 2 - from.x - from.w / 2) * k;
+    const cy = from.y + from.h / 2 + (to.y + to.h / 2 - from.y - from.h / 2) * k;
+    setView({ x: cx - w / 2, y: cy - h / 2, w, h });
+    if (t < 1) cam.raf = requestAnimationFrame(tick);
+  };
+  cam.raf = requestAnimationFrame(tick);
+}
+
+// Bounding box of elements in diagram coordinates.
+function boxOf(els) {
+  const inv = state.svg.getScreenCTM().inverse();
+  let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+  for (const el of els) {
+    const r = el.getBoundingClientRect();
+    if (!r.width && !r.height) continue;
+    for (const [px, py] of [[r.left, r.top], [r.right, r.bottom]]) {
+      const pt = new DOMPoint(px, py).matrixTransform(inv);
+      x1 = Math.min(x1, pt.x); y1 = Math.min(y1, pt.y); x2 = Math.max(x2, pt.x); y2 = Math.max(y2, pt.y);
+    }
+  }
+  return x1 === Infinity ? null : { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
+}
+// The view that shows a box with a margin, zoomed in no further than MAX_SCALE and no less than minScale.
+// The left margin keeps the box clear of the minimap.
+function frameFor(b, minScale = 0) {
+  const p = paneSize(), mm = $("minimap");
+  const L = mm.hidden ? 40 : mm.offsetWidth + 40, R = 40, T = 40, B = 40;
+  const uw = Math.max(80, p.w - L - R), uh = Math.max(80, p.h - T - B);
+  const fit = Math.min(MAX_SCALE, uw / Math.max(b.w, 1), uh / Math.max(b.h, 1));
+  const sc = Math.max(fit, minScale);
+  const w = p.w / sc, h = p.h / sc;
+  return { v: { x: b.x + b.w / 2 - (L + uw / 2) / sc, y: b.y + b.h / 2 - (T + uh / 2) / sc, w, h }, fits: fit >= minScale };
+}
+function focusOn(els, minScale = READABLE) {
+  const b = boxOf(els.filter(Boolean));
+  if (b) animateTo(frameFor(b, minScale).v);
+}
+// Frame the step and what it touches; drop the touched parts when that would be too small to read.
+function focusStep(s) {
+  const nodes = (ids) => [...ids].map((id) => state.model.nodes.get(id)).filter((n) => n && n.kind === "node").map((n) => n.el);
+  const core = nodes(s.P).concat([...s.EP].map((e) => e.el));
+  const wide = core.concat(nodes(s.S));
+  // Try the widest readable frame first: step + touched boxes, then step boxes + arrows, then step boxes only.
+  // Long routed arrows (compact layout) can stretch a box far beyond the step itself.
+  const own = nodes(s.P);
+  for (const set of [wide, core, own]) {
+    const b = set.length && boxOf(set);
+    if (b && frameFor(b, READABLE).fits) return animateTo(frameFor(b).v);
+  }
+  focusOn(own.length ? own : core.length ? core : wide);
+}
+function zoomAround(factor, px, py) {
+  const c = cam.cur, p = paneSize();
+  const minW = p.w / MAX_SCALE / 1.5, maxW = overview().w * 1.5;
+  const w = Math.min(maxW, Math.max(minW, c.w / factor)), k = w / c.w;
+  const fx = px / p.w, fy = py / p.h; // keep the point under the cursor still
+  setView({ x: c.x + c.w * fx * (1 - k), y: c.y + c.h * fy * (1 - k), w, h: c.h * k });
+}
+function zoomBy(f) { if (!cam.cur) return; cancelAnimationFrame(cam.raf); const p = paneSize(); zoomAround(f, p.w / 2, p.h / 2); }
+
+// Pointer: drag to pan, wheel to pan, Ctrl/Cmd + wheel or pinch to zoom.
+(() => {
+  const pane = $("diagramPane");
+  let drag = null, moved = false;
+  pane.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 || !cam.cur || e.target.closest("#minimap, .empty")) return;
+    cancelAnimationFrame(cam.raf);
+    drag = { x: e.clientX, y: e.clientY, v: { ...cam.cur } }; moved = false;
+  });
+  addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!moved && Math.hypot(dx, dy) < 4) return;
+    if (!moved) { moved = true; pane.classList.add("dragging"); pane.setPointerCapture?.(e.pointerId); }
+    const upp = drag.v.w / paneSize().w;
+    setView({ ...drag.v, x: drag.v.x - dx * upp, y: drag.v.y - dy * upp });
+  });
+  addEventListener("pointerup", () => { drag = null; pane.classList.remove("dragging"); });
+  // A drag must not count as a click on a box.
+  pane.addEventListener("click", (e) => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
+  pane.addEventListener("wheel", (e) => {
+    if (!cam.cur || e.target.closest(".empty")) return;
+    e.preventDefault(); cancelAnimationFrame(cam.raf);
+    const r = pane.getBoundingClientRect();
+    if (e.ctrlKey || e.metaKey) return zoomAround(Math.exp(-e.deltaY * 0.01), e.clientX - r.left, e.clientY - r.top);
+    const upp = cam.cur.w / paneSize().w;
+    setView({ ...cam.cur, x: cam.cur.x + e.deltaX * upp, y: cam.cur.y + e.deltaY * upp });
+  }, { passive: false });
+})();
+
+/* ---------------- Minimap ---------------- */
+
+function refreshMinimap() {
+  const mm = $("minimap");
+  mm.querySelector("svg")?.remove();
+  if (!state.svg || !cam.full) { mm.hidden = true; return; }
+  const clone = state.svg.cloneNode(true);
+  const f = cam.full;
+  clone.setAttribute("viewBox", `${f.x} ${f.y} ${f.w} ${f.h}`);
+  clone.removeAttribute("width"); clone.removeAttribute("height");
+  clone.setAttribute("aria-hidden", "true");
+  mm.style.width = (f.h > f.w * 1.2 ? 130 : 200) + "px";
+  mm.prepend(clone);
+  mm.hidden = false;
+  updateMinimapView();
+}
+function updateMinimapView() {
+  const mm = $("minimap"), svg = mm.querySelector("svg");
+  if (!svg || !cam.cur || !cam.full) return;
+  const f = cam.full, c = cam.cur, r = svg.getBoundingClientRect(), base = mm.getBoundingClientRect();
+  const sx = r.width / f.w, sy = r.height / f.h;
+  const x1 = Math.max(0, (c.x - f.x) * sx), y1 = Math.max(0, (c.y - f.y) * sy);
+  const x2 = Math.min(r.width, (c.x + c.w - f.x) * sx), y2 = Math.min(r.height, (c.y + c.h - f.y) * sy);
+  const view = mm.querySelector(".view");
+  Object.assign(view.style, { left: `${r.left - base.left + x1}px`, top: `${r.top - base.top + y1}px`, width: `${Math.max(0, x2 - x1)}px`, height: `${Math.max(0, y2 - y1)}px` });
+  mm.classList.toggle("full", c.w >= f.w * 0.98 && c.h >= f.h * 0.98);
+}
+$("minimap").addEventListener("pointerdown", (e) => {
+  e.stopPropagation();
+  const svg = $("minimap").querySelector("svg");
+  if (!svg || !cam.cur) return;
+  const move = (ev) => {
+    const r = svg.getBoundingClientRect(), f = cam.full;
+    const x = f.x + ((ev.clientX - r.left) / r.width) * f.w, y = f.y + ((ev.clientY - r.top) / r.height) * f.h;
+    cancelAnimationFrame(cam.raf);
+    setView({ ...cam.cur, x: x - cam.cur.w / 2, y: y - cam.cur.h / 2 });
+  };
+  move(e);
+  const up = () => { removeEventListener("pointermove", move); removeEventListener("pointerup", up); };
+  addEventListener("pointermove", move); addEventListener("pointerup", up);
+});
+
+/* ---------------- Sources: server, file picker, drag and drop ---------------- */
+
+function setLive(text, on) { $("live").lastElementChild.textContent = text; $("live").classList.toggle("on", on); }
+
+async function loadFromServer() {
+  try {
+    const r = await fetch("api/source", { cache: "no-store" });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
+    const j = await r.json();
+    Object.assign(state, { text: j.text, name: j.name, mtime: j.mtime, live: true });
+    setLive(`Live: ${j.name}`, true);
+    await render();
+    return true;
+  } catch (err) {
+    if (location.protocol.startsWith("http")) setLive("Source unavailable", false);
+    return false;
+  }
+}
+
+async function poll() {
+  if (!state.live) return;
+  try {
+    const r = await fetch("api/mtime", { cache: "no-store" });
+    if (!r.ok) throw new Error();
+    const j = await r.json();
+    setLive(`Live: ${j.name}`, true);
+    if (j.mtime !== state.mtime) await loadFromServer();
+  } catch { setLive("Server stopped", false); }
+}
+
+async function loadFile(file) {
+  state.text = await file.text(); state.name = file.name; state.live = false;
+  state.forcedDiagram = state.forcedTable = null; state.sel = -1; state.comp = null; cam.cur = null;
+  setLive(`File: ${file.name}`, false);
+  await render();
+}
+
+$("openBtn").addEventListener("click", () => $("fileInput").click());
+$("fileInput").addEventListener("change", (e) => e.target.files[0] && loadFile(e.target.files[0]));
+addEventListener("dragover", (e) => { e.preventDefault(); $("drop").classList.add("show"); });
+addEventListener("dragleave", (e) => { if (!e.relatedTarget) $("drop").classList.remove("show"); });
+addEventListener("drop", (e) => { e.preventDefault(); $("drop").classList.remove("show"); const f = e.dataTransfer.files[0]; if (f) loadFile(f); });
+
+// A different diagram or table starts from the overview.
+$("diagramSel").addEventListener("change", (e) => { state.forcedDiagram = +e.target.value; state.forcedTable = null; state.sel = -1; state.comp = null; state.relayout = true; render(); });
+$("tableSel").addEventListener("change", (e) => { state.forcedTable = +e.target.value; state.sel = -1; state.comp = null; state.relayout = true; render(); });
+$("prevBtn").addEventListener("click", () => step(-1));
+$("nextBtn").addEventListener("click", () => step(1));
+$("playBtn").addEventListener("click", togglePlay);
+$("clearBtn").addEventListener("click", clearAll);
+$("zoomIn").addEventListener("click", () => zoomBy(1.2));
+$("zoomOut").addEventListener("click", () => zoomBy(1 / 1.2));
+$("zoomFit").addEventListener("click", () => cam.full && animateTo(overview()));
+function storedLayout() { try { return localStorage.getItem("vw-layout"); } catch { return null; } }
+let elkReady = null;
+async function useLayout(name) {
+  if (name === "elk") {
+    elkReady ??= import("https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0/dist/mermaid-layout-elk.esm.min.mjs")
+      .then((m) => { mermaid.registerLayoutLoaders(m.default); return true; })
+      .catch(() => false);
+    if (!(await elkReady)) { name = "dagre"; }
+  }
+  state.layout = name; $("layoutSel").value = name;
+  try { localStorage.setItem("vw-layout", name); } catch { /* private mode */ }
+}
+$("layoutSel").addEventListener("change", async (e) => { await useLayout(e.target.value); state.relayout = true; if (state.text) render(); });
+$("themeBtn").addEventListener("click", () => {
+  const next = isDark() ? "light" : "dark";
+  document.documentElement.dataset.theme = next; storeTheme(next);
+  if (state.text) render();
+});
+addEventListener("resize", () => { if (cam.cur) setView(cam.cur); });
+addEventListener("keydown", (e) => {
+  if (e.target.closest("select, input, textarea")) return;
+  if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); step(1); }
+  else if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); step(-1); }
+  else if (e.key === " ") { e.preventDefault(); togglePlay(); }
+  else if (e.key === "Escape") clearAll();
+  else if (e.key === "f" || e.key === "F") { if (cam.full) animateTo(overview()); }
+  else if (e.key === "+" || e.key === "=") zoomBy(1.25);
+  else if (e.key === "-") zoomBy(0.8);
+});
+
+updateProgress();
+await useLayout(storedLayout() || "dagre");
+if (!(await loadFromServer())) {
+  showMessage("Load a Markdown file",
+    "<p>Start the server with <code>python3 serve.py path/to/file.md</code> and open the address it prints, or drop a Markdown file here.</p>" +
+    "<p>The file needs a <code>```mermaid</code> diagram and a step table. The format is described in <code>format_specification.md</code>.</p>" +
+    '<button onclick="document.getElementById(\'fileInput\').click()">Open file</button>');
+}
+setInterval(poll, 1500);
+</script>
+</body>
+</html>
