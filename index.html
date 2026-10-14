@@ -59,6 +59,8 @@
   .group { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); overflow: hidden; }
   .group button { border: 0; border-radius: 0; background: transparent; }
   .group button + button, .group span + button, .group button + span { border-left: 1px solid var(--line); }
+  .seg button[aria-pressed="true"] { background: var(--signal); color: var(--signal-ink); }
+  .seg button[aria-pressed="true"]:hover { background: var(--signal); }
   .group .zoom { font: 12px var(--mono); color: var(--ink-2); padding: 0 10px; display: grid; place-items: center; min-width: 52px; }
   button, select { font: 500 13px/1 var(--sans); color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; height: 32px; padding: 0 12px; cursor: pointer; transition: background .15s, border-color .15s; }
   button:hover, select:hover { border-color: var(--ink-3); }
@@ -190,6 +192,10 @@
   <div class="tools">
     <select id="diagramSel" title="Choose diagram" hidden></select>
     <select id="tableSel" title="Choose step table" hidden></select>
+    <div class="group seg" role="group" aria-label="View">
+      <button id="modeDetail" aria-pressed="true" title="Every box and arrow">Detail</button>
+      <button id="modeOverview" aria-pressed="false" title="One box per group, for the big picture (O)">Overview</button>
+    </div>
     <select id="layoutSel" title="Diagram layout"><option value="dagre">Standard layout</option><option value="elk">Compact layout</option></select>
     <div class="group" role="group" aria-label="Zoom">
       <button class="icon" id="zoomOut" title="Zoom out" aria-label="Zoom out"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3.5 8h9"/></svg></button>
@@ -358,7 +364,8 @@ function labelLines(el) {
 function tokensOf(text) {
   return (text.match(/[\w<>{}./-]+/g) || [])
     .map((t) => t.replace(/[.,:;]+$/, ""))
-    .filter((t) => t.length >= 4 && /[./]/.test(t) && /[A-Za-z]/.test(t) && !t.startsWith("--"));
+    // A bare folder ("bot/", "src/") is too generic to link a row to one box: it would match every file in it.
+    .filter((t) => t.length >= 4 && /[./]/.test(t) && /[A-Za-z]/.test(t) && !t.startsWith("--") && !t.endsWith("/"));
 }
 
 function buildModel(svg, src) {
@@ -398,13 +405,18 @@ function buildModel(svg, src) {
     edges.push({ id: raw, el, labelEl, from, to, text, dashed });
   });
 
-  // Parent cluster of each node: the smallest cluster box that contains its centre.
+  // Parent of each node and group: the smallest other group box that contains its centre.
   const clusters = [...nodes.values()].filter((n) => n.kind === "cluster").map((c) => ({ c, b: c.el.getBBox() }));
   for (const n of nodes.values()) {
-    if (n.kind !== "node") continue;
-    const b = n.el.getBBox(), ctm = n.el.transform.baseVal.consolidate();
-    const x = (ctm ? ctm.matrix.e : 0) + b.x + b.width / 2, y = (ctm ? ctm.matrix.f : 0) + b.y + b.height / 2;
-    const inside = clusters.filter(({ b: r }) => x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height)
+    let x, y, area = 0;
+    if (n.kind === "node") {
+      const b = n.el.getBBox(), ctm = n.el.transform.baseVal.consolidate();
+      x = (ctm ? ctm.matrix.e : 0) + b.x + b.width / 2; y = (ctm ? ctm.matrix.f : 0) + b.y + b.height / 2;
+    } else {
+      const b = n.el.getBBox();
+      x = b.x + b.width / 2; y = b.y + b.height / 2; area = b.width * b.height;
+    }
+    const inside = clusters.filter(({ c, b: r }) => c !== n && r.width * r.height > area && x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height)
       .sort((p, q) => p.b.width * p.b.height - q.b.width * q.b.height);
     n.parent = inside.length ? inside[0].c.id : null;
   }
@@ -465,6 +477,158 @@ function buildSteps(model, table, keyCol) {
   return { steps, keyCol, nameCol, header: table.header };
 }
 
+/* ---------------- Overview: one box per top-level group ---------------- */
+
+// %% @overview <group>: [<title> |] <one-line role>    %% @overview-keep <group>: <node>, <node>    %% @overview-direction LR
+function overviewDirectives(src) {
+  const summary = new Map(), keep = new Map();
+  let direction = "AUTO";
+  for (const m of src.matchAll(/^\s*%%\s*@overview(-keep|-direction)?\s+(.*)$/gm)) {
+    const kind = m[1] || "", rest = m[2].trim();
+    if (kind === "-direction") { if (/^(LR|RL|TD|TB|BT)$/i.test(rest)) direction = rest.toUpperCase(); continue; }
+    const kv = rest.match(/^(\S+?)\s*:\s*(.*)$/);
+    if (!kv) continue;
+    if (kind === "-keep") keep.set(kv[1], kv[2].split(/[,\s]+/).filter(Boolean));
+    else {
+      const [a, b] = kv[2].split(/\s+\|\s+/);
+      summary.set(kv[1], b === undefined ? { role: a.trim() } : { title: a.trim(), role: b.trim() });
+    }
+  }
+  return { summary, keep, direction };
+}
+
+const SHAPES = [["(((", [")))"]], ["([", ["])"]], ["[[", ["]]"]], ["[(", [")]"]], ["((", ["))"]], ["{{", ["}}"]],
+  ["[/", ["/]", "\\]"]], ["[\\", ["\\]", "/]"]], ["[", ["]"]], ["(", [")"]], ["{", ["}"]], [">", ["]"]]];
+const escRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+// A node's own shape and label in the source, e.g. (["Requester<br/>chat or email"]), so the overview keeps it.
+function nodeDefinition(src, id) {
+  for (const m of src.matchAll(new RegExp("(^|[^\\w])" + escRe(id) + "(?=[\\[\\(\\{>])", "gm"))) {
+    const lineStart = src.lastIndexOf("\n", m.index) + 1;
+    if (/^\s*(%%|subgraph\b)/.test(src.slice(lineStart, m.index + m[0].length))) continue;
+    const i = m.index + m[0].length;
+    for (const [open, closes] of SHAPES) {
+      if (!src.startsWith(open, i)) continue;
+      let j = i + open.length;
+      if (src[j] === '"') { const q = src.indexOf('"', j + 1); if (q < 0) break; j = q + 1; }
+      const ends = closes.map((c) => [src.indexOf(c, j), c]).filter(([k]) => k >= 0).sort((a, b) => a[0] - b[0]);
+      if (ends.length) return src.slice(i, ends[0][0] + ends[0][1].length);
+    }
+  }
+  return null;
+}
+const mmText = (t) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "#quot;");
+
+// Collapse every top-level group into one box (or keep listed nodes visible inside it), merge the arrows
+// between boxes, and label each merged arrow with the step keys that use it.
+function buildOverview(src, model, flow) {
+  const { summary, keep, direction } = overviewDirectives(src);
+  const nodes = model.nodes;
+  const top = (id) => { let n = nodes.get(id); while (n?.parent) n = nodes.get(n.parent); return n ? n.id : id; };
+  const groups = [...nodes.values()].filter((n) => n.kind === "cluster" && !n.parent);
+  const kept = new Set();
+  for (const g of groups) for (const id of keep.get(g.id) || []) if (nodes.get(id)?.kind === "node" && top(id) === g.id) kept.add(id);
+  const inGroup = (gid) => [...nodes.values()].filter((n) => n.kind === "node" && top(n.id) === gid);
+  const rest = new Map(groups.map((g) => [g.id, inGroup(g.id).filter((n) => !kept.has(n.id))]));
+  const hasKeep = (gid) => inGroup(gid).some((n) => kept.has(n.id));
+  const restId = (gid) => (hasKeep(gid) ? (rest.get(gid).length ? gid + "__rest" : gid) : gid);
+  const ovId = (id) => {
+    const n = nodes.get(id);
+    if (!n) return null;
+    if (kept.has(id)) return id;
+    const t = top(id);
+    return t === id && n.kind === "node" ? id : restId(t);
+  };
+
+  const members = new Map();
+  for (const n of nodes.values()) {
+    const o = ovId(n.id);
+    if (!members.has(o)) members.set(o, new Set());
+    members.get(o).add(n.id);
+  }
+  for (const g of groups) if (hasKeep(g.id)) members.set(g.id, new Set([...nodes.values()].filter((n) => top(n.id) === g.id).map((n) => n.id)));
+
+  const keyList = [...new Set(flow.steps.map((s) => s.key))];
+  const stepKeysIn = (ids) => keyList.filter((k) => flow.steps.some((s) => s.key === k && [...s.P].some((id) => ids.has(id))));
+  const titleOf = (g) => mmText(summary.get(g.id)?.title || g.text);
+  const roleOf = (g) => { const r = summary.get(g.id)?.role; return r ? mmText(r).replace(/&lt;br\s*\/?&gt;/g, "<br/>") : ""; };
+  const groupLabel = (g, body) => `<b>${titleOf(g)}</b><br/>${body}`;
+  const defaultSummary = (ids) => {
+    const list = [...ids].map((id) => nodes.get(id)).filter((n) => n?.kind === "node");
+    // A group with one component shows that component's own label.
+    if (list.length === 1) return mmText(list[0].lines.join("\n")).replace(/\n/g, "<br/>");
+    const count = list.length;
+    const keys = stepKeysIn(ids);
+    return `${count} component${count === 1 ? "" : "s"}${keys.length ? ", steps " + keys.join(" ") : ""}`;
+  };
+  const plainDef = (n) => nodeDefinition(src, n.id) || `["${mmText(n.lines.join("\n")).replace(/\n/g, "<br/>")}"]`;
+
+  const lines = [`flowchart ${direction === "AUTO" ? "LR" : direction}`];
+  const groupNodes = [];
+  for (const n of nodes.values()) if (n.kind === "node" && !n.parent) lines.push(`    ${n.id}${plainDef(n)}`);
+  for (const g of groups) {
+    const role = roleOf(g);
+    if (!hasKeep(g.id)) {
+      lines.push(`    ${g.id}["${groupLabel(g, role || defaultSummary(members.get(g.id)))}"]`);
+      groupNodes.push(g.id);
+      continue;
+    }
+    lines.push(`    subgraph ${g.id}["${titleOf(g)}"]`);
+    for (const n of inGroup(g.id)) if (kept.has(n.id)) lines.push(`        ${n.id}${plainDef(n)}`);
+    if (rest.get(g.id).length) {
+      const ids = members.get(g.id + "__rest");
+      lines.push(`        ${g.id}__rest["${role || defaultSummary(ids)}"]`);
+      groupNodes.push(g.id + "__rest");
+    }
+    lines.push("    end");
+  }
+
+  const agg = new Map();
+  for (const e of model.edges) {
+    const a = ovId(e.from), b = ovId(e.to);
+    if (!a || !b || a === b) continue;
+    const k = a + ">" + b;
+    if (!agg.has(k)) agg.set(k, { from: a, to: b, edges: [], dashed: true });
+    const g = agg.get(k);
+    g.edges.push(e); g.dashed = g.dashed && e.dashed;
+  }
+  for (const g of agg.values()) {
+    const found = new Set();
+    for (const e of g.edges) {
+      // The step that uses a connection is the box it leaves (inside a collapsed group), else the box it enters.
+      const box = ovId(e.from) !== e.from ? nodes.get(e.from) : nodes.get(e.to);
+      for (const k of keyList) if (hasKey(e.text, k) || (box && box.kind === "node" && hasKey(box.text, k))) found.add(k);
+    }
+    const single = g.edges.length === 1 ? g.edges[0].text : "";
+    g.keys = found;
+    const keys = keyList.filter((k) => found.has(k) && !hasKey(single, k)).join(" ");
+    const label = [single, keys].filter(Boolean).join(" ");
+    const arrow = g.dashed ? "-.->" : "-->";
+    lines.push(`    ${g.from} ${arrow}${label ? `|"${mmText(label)}"|` : ""} ${g.to}`);
+  }
+  const css = getComputedStyle(document.documentElement), v = (name) => css.getPropertyValue(name).trim();
+  if (groupNodes.length) {
+    lines.push(`    classDef vwGroup fill:${v("--panel-2")},stroke:${v("--node-border")},stroke-width:2.5px`);
+    lines.push(`    class ${groupNodes.join(",")} vwGroup`);
+  }
+  return { src: lines.join("\n"), auto: direction === "AUTO", ovId, members, agg, groupIds: new Set([...groups.map((g) => g.id), ...groupNodes]) };
+}
+
+// A step's highlight in the overview: its boxes and arrows mapped onto the collapsed boxes and merged arrows.
+function overviewSets(s, ov, vm) {
+  const map = (ids) => new Set([...ids].map(ov.ovId).filter((id) => id && vm.nodes.has(id)));
+  const P = map(s.P);
+  const S = new Set([...map(s.S)].filter((id) => !P.has(id)));
+  const EP = new Set(), ES = new Set();
+  for (const g of ov.agg.values()) {
+    const e = vm.edges.find((x) => x.from === g.from && x.to === g.to);
+    if (!e) continue;
+    // A merged arrow is part of the step when it carries the step's key or contains one of its arrows.
+    if (g.keys.has(s.key) || g.edges.some((x) => s.EP.has(x))) EP.add(e);
+    else if (g.edges.some((x) => s.ES.has(x))) ES.add(e);
+  }
+  return { P, S, EP, ES };
+}
+
 /* ---------------- Theme ---------------- */
 
 function storedTheme() { try { return localStorage.getItem("vw-theme"); } catch { return null; } }
@@ -510,7 +674,7 @@ function initMermaid() {
 /* ---------------- Rendering and interaction ---------------- */
 
 const state = { text: "", name: "", mtime: null, live: false, forcedDiagram: null, forcedTable: null,
-  model: null, flow: null, svg: null, sel: -1, comp: null, playing: null, renderSeq: 0, layout: "dagre" };
+  model: null, flow: null, svg: null, sel: -1, comp: null, playing: null, renderSeq: 0, layout: "dagre", mode: "detail", ov: null, ovSets: null };
 
 function showMessage(title, html, isError) {
   $("diagram").innerHTML = `<div class="empty${isError ? " error" : ""}"><h2>${title}</h2>${html}</div>`;
@@ -548,16 +712,36 @@ async function render() {
     return showMessage("Mermaid could not draw the diagram", `<p>${esc(String(err.message || err))}</p>`, true);
   }
   if (seq !== state.renderSeq) return;
-  $("diagram").innerHTML = svgText;
-  const svg = $("diagram").querySelector("svg");
-  svg.style.maxWidth = "none";
-  svg.setAttribute("width", "100%"); svg.setAttribute("height", "100%");
-  svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  let svg = mountSvg(svgText);
+  state.model = buildModel(svg, diagram.src);
+  state.flow = buildSteps(state.model, table, pick.col);
+  state.ov = null; state.ovSets = null;
+  if (state.comp?.endsWith("__rest")) state.comp = state.comp.slice(0, -6);
+  if (state.mode === "overview") {
+    // The overview is computed from the detailed model, then drawn as its own small diagram.
+    const ov = buildOverview(diagram.src, state.model, state.flow);
+    try {
+      ({ svg: svgText } = await mermaid.render("vwo" + seq, ov.src));
+      if (ov.auto) {
+        // No direction given: draw it both ways and keep the one that fits the screen larger.
+        const td = ov.src.replace(/^flowchart LR/, "flowchart TD");
+        const { svg: tdText } = await mermaid.render("vwt" + seq, td);
+        const fit = (t) => { const m = t.match(/viewBox="([\d.\s-]+)"/); if (!m) return 0; const [, , w, h] = m[1].trim().split(/\s+/).map(Number); const p = paneSize(); return Math.min(p.w / w, p.h / h); };
+        if (fit(tdText) > fit(svgText)) { svgText = tdText; ov.src = td; }
+      }
+    } catch (err) {
+      return showMessage("Mermaid could not draw the overview", `<p>${esc(String(err.message || err))}</p><pre>${esc(ov.src)}</pre>`, true);
+    }
+    if (seq !== state.renderSeq) return;
+    if (state.comp && state.model.nodes.has(state.comp)) state.comp = ov.ovId(state.comp);
+    svg = mountSvg(svgText);
+    state.model = buildModel(svg, ov.src);
+    state.ov = ov;
+    state.ovSets = state.flow.steps.map((s) => overviewSets(s, ov, state.model));
+  }
   state.svg = svg;
   const vb = svg.viewBox.baseVal;
   cam.full = { x: vb.x, y: vb.y, w: vb.width, h: vb.height };
-  state.model = buildModel(svg, diagram.src);
-  state.flow = buildSteps(state.model, table, pick.col);
   $("stepsSub").textContent = `${state.flow.steps.length} steps. Click a step, or a box in the diagram.`;
   for (const n of state.model.nodes.values()) {
     n.el.addEventListener("click", (ev) => { ev.stopPropagation(); selectComponent(n.id); });
@@ -572,8 +756,22 @@ async function render() {
   if (state.comp && !state.model.nodes.has(state.comp)) state.comp = null;
   if (state.sel >= 0) selectStep(state.sel, false);
   else if (state.comp) selectComponent(state.comp);
-  else { highlight(); updateProgress(); }
+  else { $("component").className = ""; $("steps").classList.remove("filtering"); highlight(); updateProgress(); }
+  state.focusComp = false;
 }
+
+function mountSvg(svgText) {
+  $("diagram").innerHTML = svgText;
+  const svg = $("diagram").querySelector("svg");
+  svg.style.maxWidth = "none";
+  svg.setAttribute("width", "100%"); svg.setAttribute("height", "100%");
+  svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  return svg;
+}
+
+// The highlight sets of a step in the current view.
+function setsFor(s) { return state.ovSets ? state.ovSets[s.idx] : s; }
+function membersOf(id) { return state.ov?.members.get(id) || new Set([id]); }
 
 function fillSelect(sel, labels, forced) {
   sel.hidden = labels.length < 2;
@@ -623,18 +821,22 @@ function selectStep(idx, scroll) {
     const i = +li.dataset.idx;
     li.classList.toggle("sel", i === idx); li.classList.toggle("past", i < idx); li.classList.remove("touch");
   });
-  highlight(s.P, s.S, s.EP, s.ES);
+  const sets = setsFor(s);
+  highlight(sets.P, sets.S, sets.EP, sets.ES);
   updateProgress();
   if (scroll) {
     $("steps").querySelector(`li[data-idx="${idx}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    focusStep(s);
+    // The overview is the big picture: the camera stays put while the highlight moves.
+    if (!state.ov) focusStep(sets);
   }
 }
 
 function selectComponent(id) {
   stopPlay();
   const n = state.model.nodes.get(id);
-  const touching = state.flow.steps.filter((s) => s.P.has(id) || s.S.has(id));
+  if (!n) return;
+  const ids = membersOf(id);
+  const touching = state.flow.steps.filter((s) => [...ids].some((m) => s.P.has(m) || s.S.has(m)));
   state.comp = id; state.sel = -1;
   highlight(new Set([id]));
   $("steps").classList.add("filtering");
@@ -642,15 +844,18 @@ function selectComponent(id) {
     li.classList.remove("sel", "past");
     li.classList.toggle("touch", touching.some((s) => s.idx === +li.dataset.idx));
   });
-  const name = (n.lines[0] || id).replace(/^[⓪①-⑳Ⓢ]\S*\s*/u, "");
+  const name = (n.lines[0] || id).replace(/^[⓪①-⑳Ⓐ-Ⓩ]\S*\s*/u, "");
+  const isGroup = n.kind === "cluster" || state.ov?.groupIds.has(id);
   const chips = touching.map((s) => `<button data-idx="${s.idx}" title="Show step ${esc(s.key)}"><b>${esc(displayKey(s.key))}</b> ${esc(s.name)}</button>`).join("");
   $("component").innerHTML = `<div class="what">${esc(name)}</div>` +
-    `<div class="meta">${n.kind === "cluster" ? "Group" : "Component"} <code>${esc(id)}</code>, ` +
-    (touching.length ? `used in ${touching.length} step${touching.length > 1 ? "s" : ""}</div><div class="chips">${chips}</div>` : "not used in any step</div>");
+    `<div class="meta">${isGroup ? "Group" : "Component"} <code>${esc(id.replace(/__rest$/, ""))}</code>, ` +
+    (touching.length ? `used in ${touching.length} step${touching.length > 1 ? "s" : ""}</div><div class="chips">${chips}</div>` : "not used in any step</div>") +
+    (state.ov ? `<div class="chips"><button class="open-detail">Show in detail</button></div>` : "");
   $("component").className = "show";
-  $("component").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => selectStep(+b.dataset.idx, true)));
+  $("component").querySelectorAll("button[data-idx]").forEach((b) => b.addEventListener("click", () => selectStep(+b.dataset.idx, true)));
+  $("component").querySelector(".open-detail")?.addEventListener("click", () => { state.focusComp = true; setMode("detail"); });
   $("steps").querySelector("li.touch")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  focusOn([n.el], n.kind === "cluster" ? 0.35 : 0.9);
+  if (!state.ov || state.focusComp) focusOn([n.el], n.kind === "cluster" ? 0.35 : 0.9);
   updateProgress();
 }
 
@@ -706,7 +911,12 @@ function fitAspect(v) {
 }
 function overview() {
   const f = cam.full, pad = Math.max(f.w, f.h) * 0.02;
-  return fitAspect({ x: f.x - pad, y: f.y - pad, w: f.w + 2 * pad, h: f.h + 2 * pad });
+  const v = fitAspect({ x: f.x - pad, y: f.y - pad, w: f.w + 2 * pad, h: f.h + 2 * pad });
+  // A small diagram is shown at most at MAX_SCALE, centred, instead of blown up.
+  const minW = paneSize().w / MAX_SCALE;
+  if (v.w >= minW) return v;
+  const k = minW / v.w;
+  return { x: v.x + v.w / 2 - (v.w * k) / 2, y: v.y + v.h / 2 - (v.h * k) / 2, w: v.w * k, h: v.h * k };
 }
 function setView(v) {
   if (!state.svg) return;
@@ -923,6 +1133,16 @@ async function useLayout(name) {
   state.layout = name; $("layoutSel").value = name;
   try { localStorage.setItem("vw-layout", name); } catch { /* private mode */ }
 }
+function setMode(mode) {
+  state.mode = mode === "overview" ? "overview" : "detail";
+  $("modeDetail").setAttribute("aria-pressed", String(state.mode === "detail"));
+  $("modeOverview").setAttribute("aria-pressed", String(state.mode === "overview"));
+  try { localStorage.setItem("vw-mode", state.mode); } catch { /* private mode */ }
+  state.relayout = true;
+  if (state.text) render();
+}
+$("modeDetail").addEventListener("click", () => state.mode !== "detail" && setMode("detail"));
+$("modeOverview").addEventListener("click", () => state.mode !== "overview" && setMode("overview"));
 $("layoutSel").addEventListener("change", async (e) => { await useLayout(e.target.value); state.relayout = true; if (state.text) render(); });
 $("themeBtn").addEventListener("click", () => {
   const next = isDark() ? "light" : "dark";
@@ -937,12 +1157,14 @@ addEventListener("keydown", (e) => {
   else if (e.key === " ") { e.preventDefault(); togglePlay(); }
   else if (e.key === "Escape") clearAll();
   else if (e.key === "f" || e.key === "F") { if (cam.full) animateTo(overview()); }
+  else if (e.key === "o" || e.key === "O") setMode(state.mode === "overview" ? "detail" : "overview");
   else if (e.key === "+" || e.key === "=") zoomBy(1.25);
   else if (e.key === "-") zoomBy(0.8);
 });
 
 updateProgress();
 await useLayout(storedLayout() || "dagre");
+try { if (localStorage.getItem("vw-mode") === "overview") { state.mode = "overview"; $("modeDetail").setAttribute("aria-pressed", "false"); $("modeOverview").setAttribute("aria-pressed", "true"); } } catch { /* private mode */ }
 if (!(await loadFromServer())) {
   showMessage("Load a Markdown file",
     "<p>Start the server with <code>python3 serve.py path/to/file.md</code> and open the address it prints, or drop a Markdown file here.</p>" +

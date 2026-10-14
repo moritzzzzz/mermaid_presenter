@@ -4,6 +4,7 @@ An interactive walkthrough of a Mermaid flowchart and its step table, both from 
 
 - **Click a step** in the sidebar (or press ← / →, or Play). The view zooms to the step and highlights its boxes and arrows, plus what it touches.
 - **Click a box or group** in the diagram to see every step that uses it.
+- **Overview** (or `O`) collapses each group (environment) into one box and merges the arrows between groups, for presenting the overall architecture. Steps still work there. **Detail** goes back to every box. See section 6 of `format_specification.md`.
 - **Fit** (or `F`) shows the whole diagram. The minimap in the corner shows where you are: click or drag in it to move.
 - **Compact layout** (dropdown) uses Mermaid's ELK layout engine: a smaller diagram with right-angled arrows. The choice is remembered per browser.
 - **Edit the Markdown file** while the server runs, and the page updates within about 2 seconds.
@@ -38,6 +39,7 @@ The page loads Mermaid 11 (and, for the compact layout, its ELK plugin) from cdn
 | ← / ↑ | Previous step |
 | Space | Play or pause (3 s per step) |
 | Esc | Clear the highlight |
+| O | Switch between Detail and Overview |
 | F | Fit the whole diagram |
 | + / − | Zoom in or out |
 | Drag | Move the diagram |

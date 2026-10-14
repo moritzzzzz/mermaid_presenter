@@ -74,7 +74,7 @@ The highest score wins, and **at least 2 distinct keys** must match. Real step k
 
 **A row mentions a node or subgraph when its text contains:**
 - the node **id** as a whole word, case-sensitive and at least 2 characters (for example `E1`, `PR`)
-- a file, path or endpoint token from the node's label (a word with `.` or `/`, such as `check_sender.py` or `/v1/agents`), as long as at most two nodes share that token
+- a file, path or endpoint token from the node's label (a word with `.` or `/`, such as `check_sender.py` or `/v1/agents`), as long as at most two nodes share that token. Bare folders ending in `/` (such as `src/`) don't count.
 - the node's **short name**: the first label line, cut at `(`, `,` or `:`, between 4 and 30 characters and at most 3 words, matched as a whole phrase in any case (for example `Requester`)
 
 **Clicking a node or subgraph** lists every step for which it is a step or touched element, and highlights those rows.
@@ -90,7 +90,49 @@ If the automatic linking misses something, add Mermaid comments. Mermaid ignores
 
 Syntax: `%% @step <key>: <node or subgraph id>, <id> …`, with ids separated by commas or spaces. Listed ids become **step** (primary) elements for that key. Unknown ids are ignored.
 
-## 6. Minimal example
+## 6. Overview mode
+
+**Overview** (button in the top bar, or the `O` key) shows the big picture: one box per group, and one arrow per pair of groups that talk to each other. The viewer computes it from the detailed diagram, so it works without extra markup. The comment lines below make it presentation-ready.
+
+### How the overview is built
+
+| Detailed diagram | In the overview |
+|---|---|
+| A **top-level `subgraph`** (for example an environment, a service or a team) | **One box**: the group's title in bold, then its role (`@overview`), or by default its number of components and its step keys. A group with a single component shows that component's label. Nested subgraphs are folded into their top-level group. |
+| A node **outside any subgraph** (people, external actors) | Unchanged, with its own shape and label |
+| A node listed in **`@overview-keep`** | Stays visible inside its group, which is then drawn as a subgraph. The group's other nodes become one box with the role text. |
+| **Arrows between two groups** (in the same direction) | **Merged into one arrow.** Its label lists the step keys that use the connection, taken from the arrow labels and from the boxes the arrows leave. If only one arrow was merged, its own label is kept as well. Dashed only if all merged arrows were dashed. |
+| Arrows **inside** a group | Hidden |
+
+Steps keep working in the overview. A step highlights the boxes that contain its components and the merged arrows that carry its key. Clicking a box lists every step that touches any of its components, and **Show in detail** opens the detailed diagram at that group.
+
+### Writing the diagram for a good overview
+
+- Put every component inside a **top-level `subgraph`** that stands for one architectural element (environment, system, service). Leave only people and external actors outside.
+- Give each group a **short title** in its label, for example `subgraph E1["E1 · Grok Bot VM"]`, or set one with `@overview` (below).
+- Keep **ids** short and stable: the overview reuses them.
+
+### Overview comment lines
+
+Like `@step`, these are Mermaid comments. Mermaid ignores them, and only the viewer reads them. They can go anywhere in the diagram.
+
+```
+%% @overview E1: E1 · Grok Bot VM | bot/*.md instructions + src/ scripts<br/>🔒 G1-G9
+%% @overview E5: Launch, follow-up, run status
+%% @overview-keep E3: RECORD, PR, MAIN
+%% @overview-direction TD
+```
+
+| Line | Effect |
+|---|---|
+| `%% @overview <group>: <role>` | Text under the group's title in the overview. `<br/>` makes a line break. |
+| `%% @overview <group>: <title> \| <role>` | Also replaces the group's title in the overview (the part before ` \| `, with spaces around the bar). Use it when the detailed title is long. |
+| `%% @overview-keep <group>: <id>, <id>` | These nodes stay visible inside the group, for elements that matter on their own (for example the system of record). |
+| `%% @overview-direction LR` | Direction of the overview: `LR`, `RL`, `TD`, `TB` or `BT`. Without it, the viewer draws both `LR` and `TD` and keeps the one that fits the screen larger. |
+
+`<group>` is a top-level subgraph id, and `<id>` a node id inside it. Unknown ids are ignored.
+
+## 7. Minimal example
 
 ````markdown
 # Order flow
@@ -108,6 +150,7 @@ flowchart LR
     CART --> PAY -- paid --> STORE --> MAIL
     PAY -.->|"declined, back to ①"| CART
     %% @step ④: STORE
+    %% @overview WEB: Web shop | Cart and payment
 ```
 
 ## Steps
@@ -120,11 +163,13 @@ flowchart LR
 | Confirm | ④ | Mail | Email sent to the customer |
 ````
 
-## 7. Checklist for authors and assistants
+## 8. Checklist for authors and assistants
 
 - [ ] There is exactly one `mermaid` block with a `flowchart`, or the right one is selected in the dropdown.
 - [ ] Every table row has a key, and that key appears in at least one node or edge label (or in a `%% @step` line).
 - [ ] Keys are whole tokens: don't glue them to letters or digits unless that's the key itself (`⑫a`).
 - [ ] No other table column contains short tokens that also appear in the diagram, or that column may be picked as the key column instead.
 - [ ] Node ids that you want rows to mention (such as environments `E1`, `E2`) appear as whole words in the row text.
+- [ ] For the overview: every component sits in a top-level `subgraph`, only people and external actors are outside, and each group has a short title or an `@overview` line.
+- [ ] Elements that must stay visible in the overview are listed in `@overview-keep`.
 - [ ] The diagram renders in Mermaid 11 (check it at mermaid.live). Syntax errors are shown in the viewer.
