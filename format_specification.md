@@ -101,7 +101,7 @@ Syntax: `%% @step <key>: <node or subgraph id>, <id> …`, with ids separated by
 | A **top-level `subgraph`** (for example an environment, a service or a team) | **One box**: the group's title in bold, then its role (`@overview`), or by default its number of components and its step keys. A group with a single component shows that component's label. Nested subgraphs are folded into their top-level group. |
 | A node **outside any subgraph** (people, external actors) | Unchanged, with its own shape and label |
 | A node listed in **`@overview-keep`** | Stays visible inside its group, which is then drawn as a subgraph. The group's other nodes become one box with the role text. |
-| **Arrows between two groups** (in the same direction) | **Merged into one arrow.** Its label lists the step keys that use the connection, taken from the arrow labels and from the boxes the arrows leave. If only one arrow was merged, its own label is kept as well. Dashed only if all merged arrows were dashed. |
+| **Arrows between two groups** (in the same direction) | **Merged into one arrow.** Its label lists the step keys that use the connection: the keys in each merged arrow's own label, or, if it has none, the key of the box the arrow leaves (inside a group) or enters. If only one arrow was merged, its own label is kept as well. Dashed only if all merged arrows were dashed. |
 | Arrows **inside** a group | Hidden |
 
 Steps keep working in the overview. A step highlights the boxes that contain its components and the merged arrows that carry its key. Clicking a box lists every step that touches any of its components, and **Show in detail** opens the detailed diagram at that group.

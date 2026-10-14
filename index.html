@@ -595,8 +595,11 @@ function buildOverview(src, model, flow) {
     const found = new Set();
     for (const e of g.edges) {
       // The step that uses a connection is the box it leaves (inside a collapsed group), else the box it enters.
+      // An arrow whose own label names a step keeps just that; otherwise the key comes from the box.
+      const own = keyList.filter((k) => hasKey(e.text, k));
       const box = ovId(e.from) !== e.from ? nodes.get(e.from) : nodes.get(e.to);
-      for (const k of keyList) if (hasKey(e.text, k) || (box && box.kind === "node" && hasKey(box.text, k))) found.add(k);
+      const keys = own.length ? own : keyList.filter((k) => box && box.kind === "node" && hasKey(box.text, k));
+      keys.forEach((k) => found.add(k));
     }
     const single = g.edges.length === 1 ? g.edges[0].text : "";
     g.keys = found;

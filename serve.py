@@ -17,7 +17,9 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 INDEX = HERE / "index.html"
-DEFAULT_SOURCE = HERE.parent / "architecture.md"
+SAMPLE_SOURCE = HERE / "sample_architecture.md"
+# The project's own architecture when it sits next to the viewer, otherwise the bundled sample.
+DEFAULT_SOURCE = HERE.parent / "architecture.md" if (HERE.parent / "architecture.md").is_file() else SAMPLE_SOURCE
 
 
 def make_handler(source: Path) -> type[BaseHTTPRequestHandler]:
@@ -61,7 +63,7 @@ def make_handler(source: Path) -> type[BaseHTTPRequestHandler]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Serve the architecture viewer.")
-    parser.add_argument("source", nargs="?", default=str(DEFAULT_SOURCE), help="Markdown file with a mermaid diagram and a step table")
+    parser.add_argument("source", nargs="?", default=str(DEFAULT_SOURCE), help="Markdown file with a mermaid diagram and a step table (default: ../architecture.md, else sample_architecture.md)")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--host", default="127.0.0.1", help="Bind address (default: localhost only)")
     parser.add_argument("--open", action="store_true", help="Open the viewer in the default browser")

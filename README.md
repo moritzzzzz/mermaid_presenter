@@ -9,11 +9,18 @@ An interactive walkthrough of a Mermaid flowchart and its step table, both from 
 - **Compact layout** (dropdown) uses Mermaid's ELK layout engine: a smaller diagram with right-angled arrows. The choice is remembered per browser.
 - **Edit the Markdown file** while the server runs, and the page updates within about 2 seconds.
 
+![Detail mode: step 6 of the sample highlighted, with its details in the sidebar](screenshots/detail.png)
+
+![Overview mode: one box per group, with merged arrows labelled by step](screenshots/overview.png)
+
+*Both screenshots show `sample_architecture.md`, a fictional bookstore order flow, at step ⑥ "Payment confirmed". Top: **Detail**. Bottom: **Overview**.*
+
 ## Run
 
 ```bash
 cd architecture_viewer
-python3 serve.py                      # serves ../architecture.md
+python3 serve.py sample_architecture.md --open   # the bundled sample
+python3 serve.py                      # ../architecture.md, or the sample if that file doesn't exist
 python3 serve.py path/to/other.md --port 8001 --open
 ```
 
@@ -30,6 +37,8 @@ The page loads Mermaid 11 (and, for the compact layout, its ELK plugin) from cdn
 | `index.html` | The whole app: parser, linking, rendering, UI |
 | `serve.py` | Local server: `/` (page), `/api/source` (file text), `/api/mtime` (change polling) |
 | `format_specification.md` | How to write a compatible source file, with an example |
+| `sample_architecture.md` | A fictional sample (bookstore order flow) to try the viewer |
+| `screenshots/` | Detail and overview screenshots of the sample |
 
 ## Keys
 
