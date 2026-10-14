@@ -1,4 +1,4 @@
-# Architecture Viewer
+# Mermaid Architecture Viewer
 
 An interactive walkthrough of a Mermaid flowchart and its step table, both from one Markdown file. Use it to present a process step by step in a demo.
 
