@@ -1,0 +1,8 @@
+Architecture Viewer
+Copyright 2026 Moritz Foerster (https://github.com/moritzzzzz)
+
+This product includes software developed by Moritz Foerster.
+
+Third-party components loaded at runtime keep their own licenses:
+- Mermaid and its ELK layout plugin (MIT License)
+- IBM Plex fonts (SIL Open Font License 1.1)

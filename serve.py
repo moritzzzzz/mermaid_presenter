@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright 2026 Moritz Foerster
+# SPDX-License-Identifier: Apache-2.0
 """Serve the architecture viewer and one Markdown source file on localhost.
 
 The source file holds a ```mermaid``` diagram and a step table. The page polls

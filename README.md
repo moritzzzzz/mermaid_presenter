@@ -39,6 +39,7 @@ The page loads Mermaid 11 (and, for the compact layout, its ELK plugin) from cdn
 | `format_specification.md` | How to write a compatible source file, with an example |
 | `sample_architecture.md` | A fictional sample (bookstore order flow) to try the viewer |
 | `screenshots/` | Detail and overview screenshots of the sample |
+| `LICENSE`, `NOTICE` | Apache License 2.0 and the attribution notice |
 
 ## Keys
 
@@ -54,3 +55,7 @@ The page loads Mermaid 11 (and, for the compact layout, its ELK plugin) from cdn
 | Drag | Move the diagram |
 | Pinch, or Ctrl/Cmd + scroll | Zoom at the pointer |
 | Scroll | Move the diagram |
+
+## License
+
+Copyright 2026 Moritz Foerster. Licensed under the [Apache License 2.0](LICENSE): free to use, change and redistribute. Copies and derived works must keep the license and the attribution in [NOTICE](NOTICE).
