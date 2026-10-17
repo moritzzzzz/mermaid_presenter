@@ -170,7 +170,7 @@ The screenshots show a synthesized sample, **Deal desk discount approval**: acco
 |---|---|
 | `index.html` | The whole app: parser, linking, rendering, UI, Edit mode |
 | `serve.py` | Local server: `/` (page), `/api/source` (file text), `/api/mtime` (change polling) |
-| `format_specification.md` | How to write a compatible source file, with an example |
+| `format_specification.md` | How to write a compatible file, for people and AI agents: walkthrough files for architectures, and process sketches (as-is process, pains, proposed architecture), with tested examples and a checklist |
 | `sample_architecture.md` | A fictional sample (bookstore order flow) to try the viewer |
 | `sample_sketch.md` | A sketch exported from Edit mode (deal desk discount approval, synthesized): discovery, pains, both boards with their steps, and the pain scorecard. **Edit** reopens it as a sketch |
 | `screenshots/` | Detail and overview of the bookstore sample; the start page, Edit mode (pains, proposed architecture) and Present mode of the deal desk sketch |
