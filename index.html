@@ -217,6 +217,10 @@
   #modeBtn { min-width: 84px; }
   body.creating .viewseg, body.creating #diagramSel, body.creating .hint { display: none !important; }
   body.connecting #diagramPane, body.linking #diagramPane { cursor: crosshair; }
+  .vw-hit { fill: none; stroke: transparent; stroke-width: 18px; pointer-events: none; }
+  body.linking .vw-hit { pointer-events: stroke; cursor: pointer; }
+  body.linking #diagram .edgeLabel { cursor: pointer; }
+  .bchip.arrow { font-style: italic; }
 
   #quick { position: absolute; left: 236px; right: 16px; bottom: 16px; display: flex; gap: 8px; align-items: center; padding: 6px 6px 6px 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); cursor: default; }
   #quick[hidden] { display: none; }
@@ -654,17 +658,24 @@ function buildModel(svg, src) {
     n.title = first.length >= 4 && first.length <= 30 && first.split(/\s+/).length <= 3 ? first : "";
   }
 
-  // Explicit links: %% @step <key>: NODE_A, NODE_B
-  const overrides = new Map();
+  // Explicit links: %% @step <key>: NODE_A, NODE_B, NODE_A-->NODE_B (an arrow)
+  const overrides = new Map(), edgeLinks = new Map(), exact = new Set();
+  // %% @exact <key> <key>: those steps highlight only what is linked to them (see buildSteps).
+  for (const m of src.matchAll(/^\s*%%\s*@exact\s+(.+)$/gm)) m[1].split(/[,\s]+/).filter(Boolean).forEach((k) => exact.add(k));
   for (const m of src.matchAll(/^\s*%%\s*@step\s+(\S+)\s*:\s*(.+)$/gm)) {
-    const ids = m[2].split(/[,\s]+/).filter((id) => nodes.has(id));
-    overrides.set(m[1], [...(overrides.get(m[1]) || []), ...ids]);
+    const tokens = m[2].split(/[,\s]+/);
+    overrides.set(m[1], [...(overrides.get(m[1]) || []), ...tokens.filter((id) => nodes.has(id))]);
+    const arrows = tokens.map((t) => t.split("-->")).filter((p) => p.length === 2 && nodes.has(p[0]) && nodes.has(p[1]));
+    edgeLinks.set(m[1], [...(edgeLinks.get(m[1]) || []), ...arrows]);
   }
-  return { nodes, edges, overrides };
+  return { nodes, edges, overrides, edgeLinks, exact };
 }
 
 function wordRe(s, flags) { return new RegExp("(^|[^\\p{L}\\p{N}_])" + s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?![\\p{L}\\p{N}_])", flags); }
 
+// A step listed in %% @exact highlights what is linked to it, and nothing found by the rules below: its boxes,
+// the arrows between them, the arrows linked to it, and the arrows whose label holds its key. Edit mode lists
+// every step of a sketch, and the steps whose links were edited in a copy of a file.
 function buildSteps(model, table, keyCol) {
   const nameCol = keyCol === 0 ? 1 : 0;
   const steps = table.rows.map((cells, idx) => ({
@@ -674,11 +685,18 @@ function buildSteps(model, table, keyCol) {
   steps.forEach((s, i) => {
     for (const n of model.nodes.values()) if (hasKey(n.text, s.key)) s.P.add(n.id);
     (model.overrides.get(s.key) || []).forEach((id) => s.P.add(id));
-    const prev = i > 0 ? steps[i - 1].P : new Set();
+    const strict = model.exact.has(s.key);
+    const prev = i > 0 && !strict ? steps[i - 1].P : new Set(), linked = model.edgeLinks.get(s.key) || [];
     for (const e of model.edges) {
       if (hasKey(e.text, s.key)) { s.EP.add(e); [e.from, e.to].forEach((id) => id && s.S.add(id)); }
+      else if (linked.some(([a, z]) => a === e.from && z === e.to)) s.EP.add(e);
       else if (s.P.has(e.from) && (s.P.has(e.to) || prev.has(e.from))) s.EP.add(e);
       else if (prev.has(e.from) && s.P.has(e.to)) s.EP.add(e);
+    }
+    if (strict) {
+      for (const id of s.P) { const p = model.nodes.get(id)?.parent; if (p) s.S.add(p); }
+      for (const id of s.P) s.S.delete(id);
+      return;
     }
     // One hop out of and into the step's components: what it calls, and what triggers it.
     for (const e of model.edges) {
@@ -1647,6 +1665,7 @@ function normalizeSketch(o) {
       keys0: Array.isArray(n.keys0) ? n.keys0.map(str) : null, br: Array.isArray(n.br) && n.br.length === 2 ? n.br.map(str) : null, cls: str(n.cls),
       g0: n.g0 === undefined ? undefined : n.g0 == null ? null : str(n.g0) }));
     const nids = new Set(b.nodes.map((n) => n.id)), ends = new Set([...nids, ...gids]);
+    const arrowIds = (t) => (Array.isArray(t.edges) ? t.edges.map(str) : []).filter((id) => b.edges.some((e) => e.id === id));
     for (const [id, p] of Object.entries(src.pos || {})) if (nids.has(id) && Number.isFinite(p?.x) && Number.isFinite(p?.y)) b.pos[id] = { x: p.x, y: p.y };
     b.edges = (src.edges || []).filter((e) => e && ends.has(e.from) && ends.has(e.to))
       .map((e) => ({ id: str(e.id) || uid("e"), from: e.from, to: e.to, label: str(e.label), dashed: !!e.dashed, arrow: strOrNull(e.arrow), labelRaw: strOrNull(e.labelRaw),
@@ -1663,12 +1682,12 @@ function normalizeSketch(o) {
       b.steps = (src.steps || []).filter(Boolean).map((t) => {
         const cells = b.header.map((h, i) => str((t.cells || [])[i]));
         return { id: str(t.id) || uid("t"), cells, key: stripMd(cells[b.keyCol] || ""), rowRaw: strOrNull(t.rowRaw),
-          nodes: (t.nodes || []).filter((id) => nids.has(id)), over: (t.over || []).filter((id) => ends.has(id)), pains: (t.pains || []).map(str).filter((id) => pids.has(id)) };
+          nodes: (t.nodes || []).filter((id) => nids.has(id)), over: (t.over || []).filter((id) => ends.has(id)), edges: arrowIds(t), exact: !!t.exact, pains: (t.pains || []).map(str).filter((id) => pids.has(id)) };
       });
     } else {
       b.steps = (src.steps || []).filter(Boolean).map((t) => ({ id: str(t.id) || uid("t"), name: str(t.name), who: str(t.who), tool: str(t.tool),
         wait: str(t.wait), what: str(t.what), owner: str(t.owner),
-        pains: (t.pains || []).map(str).filter((id) => pids.has(id)), nodes: (t.nodes || []).filter((id) => nids.has(id)) }));
+        pains: (t.pains || []).map(str).filter((id) => pids.has(id)), nodes: (t.nodes || []).filter((id) => nids.has(id)), edges: arrowIds(t) }));
     }
     sk.boards[key] = b; sk.slots.push(key);
   }
@@ -1782,7 +1801,7 @@ function parseFlowchart(src) {
   const lines = src.split(/\r?\n/);
   // lines: the source, line by line, with what each line defines. An edited board is written back line by line,
   // so everything that was not changed keeps its exact text and place.
-  const out = { pre: [], keyword: "flowchart", dir: "TD", groups: [], nodes: [], edges: [], extra: [], overrides: new Map(), pins: new Map(), kept: 0, lines: [] };
+  const out = { pre: [], keyword: "flowchart", dir: "TD", groups: [], nodes: [], edges: [], extra: [], overrides: new Map(), exact: new Set(), pins: new Map(), kept: 0, lines: [] };
   const nodeByMid = new Map(), groupByMid = new Map(), stack = [];
   let header = false;
   const touchNode = (r) => {
@@ -1808,9 +1827,10 @@ function parseFlowchart(src) {
     }
     if (!t) { keep(); continue; }
     if (t.startsWith("%%")) {
-      const st = t.match(/^%%\s*@step\s+(\S+)\s*:\s*(.+)$/), ps = t.match(/^%%\s*@pos\s+(\S+?)\s*:\s*(-?[\d.]+)[\s,]+(-?[\d.]+)\s*$/);
+      const st = t.match(/^%%\s*@step\s+(\S+)\s*:\s*(.+)$/), ps = t.match(/^%%\s*@pos\s+(\S+?)\s*:\s*(-?[\d.]+)[\s,]+(-?[\d.]+)\s*$/), ex = t.match(/^%%\s*@exact\s+(.+)$/);
       // @step, @pos and the loose-keys note are written fresh from the model, so their old lines are dropped.
       if (st) out.overrides.set(st[1], [...(out.overrides.get(st[1]) || []), ...st[2].split(/[,\s]+/).filter(Boolean)]);
+      else if (ex) ex[1].split(/[,\s]+/).filter(Boolean).forEach((k) => out.exact.add(k));
       else if (ps) out.pins.set(ps[1], { x: +ps[2], y: +ps[3] });
       else if (!/^%%\s*Steps without a box yet/.test(t)) { out.extra.push(t); keep(); }
       continue;
@@ -1873,8 +1893,12 @@ function sketchFromDoc(text, name) {
     b.steps = t.rows.map((cells, r) => {
       const key = keyOf(cells);
       const nodes = f.nodes.filter((n) => hasKey(`${n.label}\n${n.sub}`, key)).map((n) => n.id);
-      const over = (f.overrides.get(key) || []).map((mid) => f.nodeByMid.get(mid)?.id || f.groupByMid.get(mid)?.id).filter(Boolean);
-      return { id: uid("t"), cells: t.header.map((h, i) => cells[i] || ""), key, rowRaw: t.raws[r], nodes, over, pains: [] };
+      const byMid = (mid) => f.nodeByMid.get(mid)?.id || f.groupByMid.get(mid)?.id;
+      const tokens = f.overrides.get(key) || [];
+      const over = tokens.filter((m) => !m.includes("-->")).map(byMid).filter(Boolean);
+      const edges = tokens.map((m) => m.split("-->")).filter((p) => p.length === 2)
+        .flatMap(([a, z]) => f.edges.filter((e) => e.from === byMid(a) && e.to === byMid(z)).map((e) => e.id));
+      return { id: uid("t"), cells: t.header.map((h, i) => cells[i] || ""), key, rowRaw: t.raws[r], nodes, over, edges, exact: f.exact.has(key), pains: [] };
     });
     // The keys are shown as step tokens, so the box names in the editor go without them.
     const strip = (s) => allKeys.reduce((acc, k) => acc.replace(wordRe(k, "gu"), "$1"), s).replace(/[ \t]{2,}/g, " ").trim();
@@ -1905,6 +1929,16 @@ function slugId(text, used, fallback) {
   return id;
 }
 const sameList = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
+// What a step's %% @step line lists: boxes linked by override (file boards), and linked arrows as FROM-->TO.
+// Every step of a sketch, and in a copy of a file the steps whose links were edited here (t.exact).
+function exactLine(sk, key) {
+  const b = sk.boards[key], keys = [...new Set(b.steps.map((t, i) => (!isFile(b) || t.exact ? stepKey(key, i, sk) : "")).filter(Boolean))];
+  return keys.length ? [`    %% @exact ${keys.join(" ")}`] : [];
+}
+function stepLinks(b, t, slug) {
+  const arrow = (eid) => { const e = b.edges.find((x) => x.id === eid); return e && slug.get(e.from) && slug.get(e.to) ? `${slug.get(e.from)}-->${slug.get(e.to)}` : ""; };
+  return [...new Set([...(t.over || []).map((id) => slug.get(id)), ...(t.edges || []).map(arrow)].filter(Boolean))];
+}
 function boardMermaid(sk, key) {
   const b = sk.boards[key], file = isFile(b), used = new Set(), slug = new Map();
   // Ids from the file stay as they are, so comments and styles that name them keep working.
@@ -1969,12 +2003,13 @@ function boardMermaid(sk, key) {
   }
   if (file) out.push(...b.extra.map((l) => "    " + l));
   out.push(...overview);
-  if (file) b.steps.forEach((t) => { const ids = t.over.map((id) => slug.get(id)).filter(Boolean); if (ids.length && t.key) out.push(`    %% @step ${t.key}: ${ids.join(", ")}`); });
+  b.steps.forEach((t, i) => { const ids = stepLinks(b, t, slug), k = stepKey(key, i, sk); if (ids.length && k) out.push(`    %% @step ${k}: ${ids.join(", ")}`); });
   for (const n of b.nodes) if (b.pos[n.id]) out.push(`    %% @pos ${slug.get(n.id)}: ${Math.round(b.pos[n.id].x)} ${Math.round(b.pos[n.id].y)}`);
   // Every step key appears in the diagram, so the step table always matches it, even before a step has boxes.
   const body = out.join("\n");
   const loose = [...new Set(b.steps.map((t, i) => stepKey(key, i, sk)).filter((k) => k && !hasKey(body, k)))];
   if (loose.length) out.push(`    %% Steps without a box yet: ${loose.join(" ")}`);
+  out.push(...exactLine(sk, key));
   return { src: out.join("\n"), map: new Map([...slug].map(([id, sl]) => [sl, id])) };
 }
 
@@ -2035,11 +2070,12 @@ function fileMermaid(sk, key, { slug, keysOf, def, dir }) {
   // Boxes outside any group that have no line of their own yet (new ones, or ones moved out of a group).
   for (const n of b.nodes) if (!doneN.has(n.id) && (!n.group || !groups.has(n.group))) { out.push("    " + def(n)); doneN.add(n.id); }
   for (const e of b.edges) if (!doneE.has(e.id) && slug.get(e.from) && slug.get(e.to)) out.push("    " + edgeLine(e));
-  b.steps.forEach((t) => { const ids = t.over.map((id) => slug.get(id)).filter(Boolean); if (ids.length && t.key) out.push(`    %% @step ${t.key}: ${ids.join(", ")}`); });
+  b.steps.forEach((t) => { const ids = stepLinks(b, t, slug); if (ids.length && t.key) out.push(`    %% @step ${t.key}: ${ids.join(", ")}`); });
   for (const n of b.nodes) if (b.pos[n.id]) out.push(`    %% @pos ${slug.get(n.id)}: ${Math.round(b.pos[n.id].x)} ${Math.round(b.pos[n.id].y)}`);
   const body = out.join("\n");
   const loose = [...new Set(b.steps.map((t) => t.key).filter((k) => k && !hasKey(body, k)))];
   if (loose.length) out.push(`    %% Steps without a box yet: ${loose.join(" ")}`);
+  out.push(...exactLine(sk, key));
   return { src: out.join("\n"), map: new Map([...slug].map(([id, sl]) => [sl, id])) };
 }
 
@@ -2247,7 +2283,14 @@ function japply(root, ops) {
   for (const o of ops) {
     if (!o.p.length) { if ("v" in o) root = clone(o.v); continue; }
     let obj = root;
-    for (const seg of o.p.slice(0, -1)) { obj = step(obj, seg); if (obj == null || typeof obj !== "object") throw new Error("history path"); }
+    const segs = o.p.slice(0, -1);
+    segs.forEach((seg, k) => {
+      let next = step(obj, seg);
+      // Steps saved before arrows could be linked have no "edges" list: the first link creates it.
+      if (next == null && seg === "edges" && typeof o.p[k + 1] === "number" && obj && !Array.isArray(obj)) next = obj[seg] = [];
+      obj = next;
+      if (obj == null || typeof obj !== "object") throw new Error("history path");
+    });
     const last = o.p.at(-1);
     if ("order" in o || "n" in o) {
       const arr = step(obj, last);
@@ -2564,7 +2607,7 @@ function insertPattern() {
     [["Request arrives", [req, intake], "Platform"], ["Ask once for what's missing", [intake], "Platform"], ["Agent prepares the work", [agent], "Agent"],
       ["Route and notify the approver", [route], "Platform"], ["A person decides", [gate], "Approver"], ["Act and log", [act, record], "Platform"],
       ["Status and exceptions", [status], "Platform"]]
-      .forEach(([name, nodes, owner]) => b.steps.push({ id: uid("t"), name, who: "", tool: "", wait: "", what: "", owner, pains: [], nodes }));
+      .forEach(([name, nodes, owner]) => b.steps.push({ id: uid("t"), name, who: "", tool: "", wait: "", what: "", owner, pains: [], nodes, edges: [] }));
   }, { layout: true });
   cr.tab = "steps"; storeUi(); renderCreator();
 }
@@ -2573,7 +2616,37 @@ function insertPattern() {
 function crAfterRender() {
   if (!cr.on || !state.svg) return;
   state.svg.querySelectorAll(".node").forEach((el) => el.addEventListener("dblclick", (e) => { e.stopPropagation(); focusLabel(); }));
+  addArrowHits();
   crHighlight();
+}
+// Arrows are thin, so each gets a wide invisible copy to click while linking. The copies sit in their own
+// group next to the arrows, so nothing that looks for the arrows (.edgePaths path) finds them.
+function addArrowHits() {
+  for (const e of state.model.edges) {
+    const parent = e.el?.parentNode;
+    if (!parent) continue;
+    let g = parent.nextElementSibling;
+    if (!g?.classList.contains("vw-hits")) { g = document.createElementNS("http://www.w3.org/2000/svg", "g"); g.setAttribute("class", "vw-hits"); parent.after(g); }
+    const hit = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    hit.setAttribute("d", e.el.getAttribute("d") || "");
+    if (e.el.getAttribute("transform")) hit.setAttribute("transform", e.el.getAttribute("transform"));
+    hit.setAttribute("class", "vw-hit");
+    g.append(hit);
+    for (const el of [hit, e.labelEl]) el?.addEventListener("click", (ev) => { if (cr.linking < 0) return; ev.stopPropagation(); crEdgeClick(e); });
+  }
+}
+// The sketch arrow behind a drawn one: same ends, and the same position among arrows between those ends.
+function sketchEdge(me) {
+  const from = cr.idMap.get(me.from), to = cr.idMap.get(me.to);
+  const same = board().edges.filter((e) => e.from === from && e.to === to);
+  const k = state.model.edges.filter((x) => x.from === me.from && x.to === me.to).indexOf(me);
+  return same[k] || same[0] || null;
+}
+function crEdgeClick(me) {
+  if (cr.justDragged || cr.preview || cr.linking < 0) return;
+  const e = sketchEdge(me), t = board().steps[cr.linking];
+  if (!e || !t) return;
+  change(() => { t.edges = t.edges || []; const i = t.edges.indexOf(e.id); if (i >= 0) t.edges.splice(i, 1); else t.edges.push(e.id); if (isFile(board())) t.exact = true; });
 }
 function crHighlight() {
   if (!cr.on) return;
@@ -2589,7 +2662,8 @@ function crHighlight() {
   if (t && f && cr.linking < 0 && f.key === stepKey(cr.board, i)) highlight(f.P, f.S, f.EP, f.ES);
   else {
     const P = new Set([...(t ? t.nodes : []), ...(t?.over || [])].map((id) => cr.rev.get(id)).filter(Boolean));
-    highlight(P, new Set(), new Set(state.model.edges.filter((e) => P.has(e.from) && P.has(e.to))), new Set());
+    const linked = new Set(t?.edges || []);
+    highlight(P, new Set(), new Set(state.model.edges.filter((e) => (P.has(e.from) && P.has(e.to)) || linked.has(sketchEdge(e)?.id))), new Set());
   }
   markSel();
 }
@@ -2616,7 +2690,7 @@ function banner() {
   let html = "";
   if (cr.preview) html = `Showing state ${cr.preview.i} (read-only). <button data-act="restore">Restore it</button><button data-act="now">Back to now</button>`;
   else if (cr.connect) html = `${cr.connect.from ? "Now click the box the arrow goes to." : "Click the box the arrow starts from."} <button data-act="cancel">Cancel</button>`;
-  else if (cr.linking >= 0) html = `Click boxes to link them to step <b>${esc(displayKey(stepKey(cr.board, cr.linking)))}</b>, or click again to unlink. <button data-act="cancel">Done</button>`;
+  else if (cr.linking >= 0) html = `Click boxes and arrows to link them to step <b>${esc(displayKey(stepKey(cr.board, cr.linking)))}</b>, or click again to unlink. Arrows between linked boxes are included. <button data-act="cancel">Done</button>`;
   el.innerHTML = html; el.hidden = !html;
   document.body.classList.toggle("connecting", !!cr.connect);
   document.body.classList.toggle("linking", cr.linking >= 0);
@@ -2648,7 +2722,7 @@ function crNodeClick(slug) {
   if (cr.linking >= 0) {
     if (group) return;
     const t = b.steps[cr.linking];
-    change(() => { const i = t.nodes.indexOf(id); if (i >= 0) t.nodes.splice(i, 1); else t.nodes.push(id); });
+    change(() => { const i = t.nodes.indexOf(id); if (i >= 0) t.nodes.splice(i, 1); else t.nodes.push(id); if (isFile(b)) t.exact = true; });
     return;
   }
   cr.sel = { kind: group ? "group" : "node", id };
@@ -2878,7 +2952,9 @@ function addPain() {
 
 function boxChips(t) {
   const b = board(), name = (id) => b.nodes.find((n) => n.id === id)?.label || b.groups.find((g) => g.id === id)?.label || "Box";
-  return [...t.nodes, ...(t.over || [])].map((id) => `<span class="bchip">${esc(name(id))}</span>`).join("") || '<span class="muted">none yet</span>';
+  const arrows = (t.edges || []).map((id) => b.edges.find((e) => e.id === id)).filter(Boolean)
+    .map((e) => `<span class="bchip arrow" title="Linked arrow${e.label ? `: ${esc(e.label)}` : ""}">${esc(name(e.from))} → ${esc(name(e.to))}</span>`);
+  return [...[...t.nodes, ...(t.over || [])].map((id) => `<span class="bchip">${esc(name(id))}</span>`), ...arrows].join("") || '<span class="muted">none yet</span>';
 }
 function renderStepsTab() {
   const b = board(), file = isFile(b), tobe = cr.board === "tobe" && !file, sk = cr.sk;
@@ -2899,7 +2975,7 @@ function renderStepsTab() {
         <span class="sbtns"><button data-act="up" title="Move up" aria-label="Move up">↑</button><button data-act="down" title="Move down" aria-label="Move down">↓</button><button data-act="del-step" title="Delete step" aria-label="Delete step">×</button></span></div>
       ${fields}
       <div class="chips2"><span class="lbl">${file ? "Pains" : tobe ? "Removes" : "Pain here"}</span>${painBtns(t)}</div>
-      <div class="chips2"><span class="lbl">Boxes</span><span class="blist">${boxChips(t)}</span><button class="linkbtn" data-act="link" aria-pressed="${i === cr.linking}">${i === cr.linking ? "Done" : "Link boxes"}</button></div>
+      <div class="chips2"><span class="lbl">Linked</span><span class="blist">${boxChips(t)}</span><button class="linkbtn" data-act="link" aria-pressed="${i === cr.linking}">${i === cr.linking ? "Done" : "Link boxes"}</button></div>
     </li>`;
   }).join("");
   const title = file ? b.tableHeading || "Steps" : BOARDS[cr.board].steps;
@@ -3282,8 +3358,8 @@ function addStep(at) {
     if (isFile(bd)) {
       const key = nextKey(bd), cells = bd.header.map(() => "");
       cells[bd.keyCol] = key;
-      bd.steps.splice(i, 0, { id: uid("t"), cells, key, rowRaw: null, nodes: [], over: [], pains: [] });
-    } else bd.steps.splice(i, 0, { id: uid("t"), name: "", who: "", tool: "", wait: "", what: "", owner: "", pains: [], nodes: [] });
+      bd.steps.splice(i, 0, { id: uid("t"), cells, key, rowRaw: null, nodes: [], over: [], edges: [], exact: true, pains: [] });
+    } else bd.steps.splice(i, 0, { id: uid("t"), name: "", who: "", tool: "", wait: "", what: "", owner: "", pains: [], nodes: [], edges: [] });
   });
   cr.active = i; markActiveStep(); crHighlight();
   $("tab-steps").querySelector(`.scard[data-i="${i}"] input`)?.focus();

@@ -100,6 +100,12 @@ The highest score wins, and **at least 2 distinct keys** must match. The one exc
 
 **Clicking a node or subgraph** lists every step for which it is a step or touched element, and highlights those rows.
 
+**Exact steps.** A step listed in a `%% @exact` line highlights only what is linked to it, so it shows exactly what its author chose:
+- **Step:** nodes whose label contains the key, nodes and arrows listed in its `%% @step` line, arrows whose label contains the key, and arrows between two step nodes. Arrows from the previous step are not added.
+- **Touched:** only the subgraph around each step node. One-hop neighbours and mentions are not added.
+
+Every other step uses the rules in the table above. Edit mode writes `%% @exact` for every step of a process sketch, and in a copy of a file for each step whose boxes or arrows were linked or unlinked there (and for steps added there). The other steps of a copy keep the rules above, as in the original file.
+
 ### Overrides
 
 If the automatic linking misses something, add Mermaid comments. Mermaid ignores them, and the viewer reads them:
@@ -110,6 +116,14 @@ If the automatic linking misses something, add Mermaid comments. Mermaid ignores
 ```
 
 Syntax: `%% @step <key>: <node or subgraph id>, <id> …`, with ids separated by commas or spaces. Listed ids become **step** (primary) elements for that key. Unknown ids are ignored.
+
+An **arrow** is listed as `<from id>--><to id>` without spaces, for example `%% @step ④: ROUTE_NOTIFY-->APPROVER_DECIDES`. Every arrow from that node to that node becomes a step element. Edit mode writes these lines when you link arrows to a step.
+
+```
+%% @exact ③ ④
+```
+
+`%% @exact <key> <key> …` makes those steps **exact** (above): they highlight only their own nodes, the arrows between them, and the nodes and arrows in their `@step` lines. Keys are separated by spaces or commas, and several `@exact` lines add up.
 
 ## 6. Overview mode
 
@@ -223,6 +237,8 @@ flowchart LR
 
 - **Step keys:** the As-is process uses `Ⓐ Ⓑ Ⓒ …`, and the Proposed architecture `① ② ③ …`, in row order. The key column comes first.
 - **Keys in the diagram:** each box starts its label with the keys of the steps linked to it, for example `INTAKE["① ② Intake<br/>asks for missing fields once"]`. A step without a box is listed in a comment, so its row still matches: `%% Steps without a box yet: Ⓑ`.
+- **Linked arrows:** an arrow linked to a step is listed in a `%% @step` line after the arrows, for example `%% @step ④: ROUTE_NOTIFY-->APPROVER_DECIDES` (section 5). Arrows between two boxes of the same step need no line.
+- **Exact steps:** the last line of each diagram lists all its step keys, for example `%% @exact Ⓐ Ⓑ`, so each step highlights only what is linked to it (section 5).
 - **Pains in the as-is diagram:** a box of a step that has pains gets them as its last label line, for example `FINANCE["Ⓒ Finance manager<br/>⚠ P1 P3"]`. Present shows these tags in orange. The proposed diagram has no tags: its steps say what they **remove**.
 - **Pain cells:** `⚠ P1 <text>` in the as-is table, `P1 <text>` in the proposed table, several separated by `, `.
 - **Mermaid ids** are the box or group label in capitals, with `_` for spaces and punctuation (`Exception queue` → `EXCEPTION_QUEUE`), at most 24 characters, plus `_2`, `_3` … when two labels give the same id. They only need to be unique; Edit mode rewrites them on export.
@@ -263,7 +279,7 @@ The last thing in the file is an HTML comment that holds the sketch. Markdown re
 | `groups` | `[{"id":"g1","label":"Invoice service","parent":null}]`. `parent` is another group's id, for a nested group. |
 | `nodes` | `[{"id":"n1","label":"Match","sub":"PO and receipt","shape":"box","group":"g1"}]`. `label` is the first line, `sub` the further lines (`\n` between them). `shape` is `box`, `person`, `store`, `decision` or `gate`. `group` is a group id, or leave it out. Write labels without step keys and `⚠` tags: Edit mode adds them. |
 | `edges` | `[{"from":"n1","to":"n2","label":"mismatch","dashed":false}]`. `from` and `to` are node or group ids. |
-| `steps` | In order. As-is: `{"name","who","tool","wait","pains":["P1"],"nodes":["n1"]}`. Proposed: `{"name","owner","what","pains":["P1"],"nodes":["n2"]}`. `pains` holds the pains that happen there (as-is) or that the step removes (proposed). `nodes` are the boxes the step uses. |
+| `steps` | In order. As-is: `{"name","who","tool","wait","pains":["P1"],"nodes":["n1"]}`. Proposed: `{"name","owner","what","pains":["P1"],"nodes":["n2"]}`. `pains` holds the pains that happen there (as-is) or that the step removes (proposed). `nodes` are the boxes the step uses. `edges` (optional) lists further arrows of the step, by the edge's `id`: give those edges an `id`. A step highlights its boxes, the arrows between them, and these arrows. |
 
 Ids are any strings that are unique within their list. The same id may appear on both boards.
 
@@ -316,6 +332,7 @@ flowchart LR
     SUPPLIER(["Ⓐ Supplier"])
     AP_INBOX["Ⓐ Ⓑ AP inbox<br/>⚠ P1 P2"]
     SUPPLIER -- "invoice" --> AP_INBOX
+    %% @exact Ⓐ Ⓑ
 ```
 
 ### As-is steps
@@ -337,6 +354,7 @@ flowchart LR
     SUPPLIER -- "invoice" --> MATCH
     MATCH -- "mismatch" --> EXCEPTION_QUEUE
     %% @overview INVOICE_SERVICE: Invoice service | Match, Exception queue
+    %% @exact ① ②
 ```
 
 ### Proposed steps
@@ -428,6 +446,8 @@ flowchart LR
 - [ ] Every pain has an id (`P1` …) and appears in the Pains table, in the JSON, and on at least one as-is step.
 - [ ] Every pain is removed by at least one proposed step, and the scorecard says so.
 - [ ] Every proposed step has an owner, and a `🔒` gate stands wherever a person must decide.
+- [ ] Each step links the boxes it uses. An arrow that matters for a step but doesn't run between two of its boxes is linked in `edges`, and listed in the step's `%% @step` line.
+- [ ] Each diagram ends with `%% @exact` and all its step keys.
 - [ ] The JSON comment parses, has a stable `id` and `"v":3`, and writes `--` as `-\u002d`.
 - [ ] The Markdown and the JSON describe the same boxes, arrows and steps. Open it, click **Edit**, and **Export .md** to get both from one source.
 - [ ] All data is public or synthesized.

@@ -67,7 +67,7 @@ The screenshots show a synthesized sample, **Deal desk discount approval**: acco
 - Give the sketch a name in the second bar, and fill in **Discovery** as you ask.
 - In **Pains**, write each pain in the speaker's words, with what it costs.
 - On the **As-is process** board, draw the boxes: type `Account exec -> Sales ops inbox : email` in the bar at the bottom, or right-click the canvas.
-- In **Steps**, add the steps, **Link boxes** for each one, and tag the pains that happen there. A tagged box shows `⚠ P1` in orange.
+- In **Steps**, add the steps, **Link boxes** for each one (its boxes, and any arrow that should light up with it), and tag the pains that happen there. A tagged box shows `⚠ P1` in orange.
 - **Click a pain** in the Pains tab (its token, or anywhere in its row) to highlight where it happens: the boxes of the steps tagged with it, and its tag in the box label. Click it again, click the canvas, or press `Esc` to clear.
 
 ![Edit mode, As-is board: pain P1 selected in the Pains tab, and the Finance manager box where it happens highlighted in orange](screenshots/pains.png)
@@ -102,10 +102,14 @@ The screenshots show a synthesized sample, **Deal desk discount approval**: acco
 
   Each section shows how many of its fields are filled.
 - **Pains:** P1, P2 … in the speaker's words, with what each one costs. Each pain says where it happens and which proposed step removes it. Click a pain to highlight it in the diagram.
-- **Steps:** the steps of the board that is open. Switching the board switches the steps. Selecting a step highlights the same boxes and arrows as in Present mode. While **Link boxes** is on, only the linked boxes are highlighted, so each click shows its effect.
+- **Steps:** the steps of the board that is open. Switching the board switches the steps. Selecting a step highlights the same boxes and arrows as in Present mode.
+  - **Link boxes** links boxes **and arrows** to a step: while it is on, click a box or an arrow (or its label) to link it, and click it again to unlink. The linked items show under **Linked**, arrows as `From → To`.
+  - **What a step highlights,** in Edit mode and in Present:
+    - **Steps made here** (every step of a sketch, and steps added to a copy): its linked boxes, the arrows between them, and its linked arrows. Nothing else is added, so link an arrow when it should light up with the step.
+    - **Steps of an opened file:** as in the original file, including the arrows that lead into its boxes. Once you link or unlink a box or an arrow of such a step, that step switches to the rule above; the other steps stay as they were.
   - **As-is** steps (Ⓐ Ⓑ Ⓒ) have who, tool, wait, and the pains that happen there.
   - **Proposed architecture** steps (① ② ③) have an owner (free text: a team, a system or a person), what happens, and the pains they remove.
-  - **Link boxes** connects a step to its boxes. The step key then appears in the box label.
+  - A linked box shows the step key in its label.
   - The **Pain check** under the proposed steps lists pains that no step removes, and steps that remove no pain. It also has a scorecard with a pilot measure per pain.
 - **Notes:** free text.
 - **Diffs:** the diff log, newest first. Every change is one entry: a run of typing in one field, an added box, a drag, an undo, a restore. Each entry says what changed in plain words.
