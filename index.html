@@ -15,7 +15,7 @@
     --canvas: #edf1f6; --grid: #dde4ed; --panel: #ffffff; --panel-2: #f6f8fb;
     --ink: #16202e; --ink-2: #4d5d72; --ink-3: #8593a6; --line: #dfe5ee;
     --signal: #3b4bd8; --signal-ink: #ffffff; --signal-soft: #e9ebfc; --signal-glow: rgba(59, 75, 216, .35);
-    --trace: #0b8f6a; --trace-soft: #e2f4ee;
+    --trace: #0b8f6a; --trace-soft: #e2f4ee; --pain: #c2410c; --pain-soft: #fff1e6;
     --code-bg: #eef1f6; --shadow: 0 1px 2px rgba(22, 32, 46, .05), 0 8px 24px -12px rgba(22, 32, 46, .18);
     --node-fill: #ffffff; --node-border: #b9c4d3; --edge: #8a98ab; --cluster-fill: rgba(255, 255, 255, .55); --cluster-border: #c5cfdc; --edge-label-bg: #334155;
     --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -27,7 +27,7 @@
       --canvas: #0e1520; --grid: #172231; --panel: #141c28; --panel-2: #19222f;
       --ink: #e6ebf2; --ink-2: #a9b5c5; --ink-3: #6f7d90; --line: #243042;
       --signal: #8d97ff; --signal-ink: #0e1520; --signal-soft: rgba(141, 151, 255, .14); --signal-glow: rgba(141, 151, 255, .45);
-      --trace: #3fd0a4; --trace-soft: rgba(63, 208, 164, .12);
+      --trace: #3fd0a4; --trace-soft: rgba(63, 208, 164, .12); --pain: #ff9b62; --pain-soft: rgba(255, 155, 98, .14);
       --code-bg: #1f2a39; --shadow: 0 8px 24px -12px rgba(0, 0, 0, .6);
       --node-fill: #18212e; --node-border: #3a4a60; --edge: #5f6f86; --cluster-fill: rgba(24, 33, 46, .55); --cluster-border: #2c3a4e; --edge-label-bg: #3d4d66;
       color-scheme: dark;
@@ -37,7 +37,7 @@
     --canvas: #0e1520; --grid: #172231; --panel: #141c28; --panel-2: #19222f;
     --ink: #e6ebf2; --ink-2: #a9b5c5; --ink-3: #6f7d90; --line: #243042;
     --signal: #8d97ff; --signal-ink: #0e1520; --signal-soft: rgba(141, 151, 255, .14); --signal-glow: rgba(141, 151, 255, .45);
-    --trace: #3fd0a4; --trace-soft: rgba(63, 208, 164, .12);
+    --trace: #3fd0a4; --trace-soft: rgba(63, 208, 164, .12); --pain: #ff9b62; --pain-soft: rgba(255, 155, 98, .14);
     --code-bg: #1f2a39; --shadow: 0 8px 24px -12px rgba(0, 0, 0, .6);
     --node-fill: #18212e; --node-border: #3a4a60; --edge: #5f6f86; --cluster-fill: rgba(24, 33, 46, .55); --cluster-border: #2c3a4e; --edge-label-bg: #3d4d66;
     color-scheme: dark;
@@ -138,6 +138,7 @@
   .detail { display: none; grid-column: 2; margin: 4px 0 6px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; font-size: 13px; }
   #steps li.sel .detail { display: block; animation: open .2s ease; }
   .detail dt { color: var(--ink-3); font-size: 12px; font-weight: 500; margin-top: 10px; }
+  .detail dd.pains { color: var(--pain); font-weight: 500; }
   .detail dt:first-child { margin-top: 0; }
   .detail dd { margin: 2px 0 0; overflow-wrap: anywhere; color: var(--ink); }
   @keyframes open { from { opacity: 0; transform: translateY(-4px); } }
@@ -154,7 +155,7 @@
   /* Diagram highlighting */
   :is(#diagram, #minimap) svg .node, :is(#diagram, #minimap) svg .cluster { cursor: pointer; }
   :is(#diagram, #minimap) svg :is(.node, .cluster, .edgePaths path, g.edgeLabel) { transition: opacity .25s; }
-  :is(#diagram, #minimap) svg.vw-active :is(.node, .cluster, .edgePaths path, g.edgeLabel):not(.vw-p, .vw-s) { opacity: .2; }
+  :is(#diagram, #minimap) svg.vw-active :is(.node, .cluster, .edgePaths path, g.edgeLabel):not(.vw-p, .vw-s, .vw-sel) { opacity: .2; }
   :is(#diagram, #minimap) svg .node:hover :is(rect, polygon, path, circle, ellipse) { stroke: var(--ink-3) !important; }
   :is(#diagram, #minimap) svg .node.vw-p :is(rect, polygon, path, circle, ellipse) { stroke: var(--signal) !important; stroke-width: 2.5px !important; fill: var(--signal-soft) !important; }
   :is(#diagram, #minimap) svg .node.vw-p { filter: drop-shadow(0 0 10px var(--signal-glow)); }
@@ -166,16 +167,183 @@
   /* Twice the size Mermaid laid them out at, scaled around their own centre so they stay on their arrow. */
   :is(#diagram, #minimap) svg .edgeLabel foreignObject { overflow: visible; transform-box: fill-box; transform-origin: center; scale: var(--arrow-label-scale, 2); }
   :is(#diagram, #minimap) svg g.edgeLabel.vw-p .labelBkg { background: var(--signal) !important; }
+  :is(#diagram, #minimap) svg .vw-pain { color: var(--pain); font-weight: 600; }
+  :is(#diagram, #minimap) svg .vw-pain [data-p].on { background: var(--pain); color: #fff; border-radius: 4px; padding: 0 3px; }
+  :is(#diagram, #minimap) svg .node.vw-p.vw-painsel :is(rect, polygon, path, circle, ellipse) { stroke: var(--pain) !important; fill: var(--pain-soft) !important; }
+  :is(#diagram, #minimap) svg .node.vw-p.vw-painsel { filter: drop-shadow(0 0 10px color-mix(in srgb, var(--pain) 45%, transparent)); }
+  .plist li.on { outline: 2px solid var(--pain); outline-offset: 2px; border-radius: 10px; }
+  .plist li .ptoken { cursor: pointer; }
   :is(#diagram, #minimap) svg g.edgeLabel.vw-p .labelBkg * { color: var(--signal-ink) !important; }
   :is(#diagram, #minimap) svg g.edgeLabel.vw-s .labelBkg { background: var(--trace) !important; }
   @keyframes flow { to { stroke-dashoffset: -15; } }
   @media (prefers-reduced-motion: reduce) { :is(#diagram, #minimap) svg path.vw-p, #steps li.sel .detail { animation: none; } }
 
+  /* Edit mode: a second bar, a quick-add line on the canvas and an editor in the sidebar */
+  .cbar { display: flex; flex-wrap: nowrap; align-items: center; gap: 10px; padding: 8px 20px; background: var(--panel-2); border-bottom: 1px solid var(--line); min-height: 48px; }
+  .cbar[hidden] { display: none; }
+  .cbar .cgroup { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .cbar .sketch { flex: 0 1 auto; }
+  #boardSeg[hidden] { display: none; }
+  #boardSeg button { max-width: 230px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #loadBtn { display: inline-flex; align-items: center; gap: 6px; padding-right: 8px; }
+  #loadBtn[aria-expanded="true"] { background: var(--signal-soft); border-color: var(--signal); color: var(--signal); }
+  #loadMenu { position: fixed; min-width: 300px; max-height: 60vh; overflow: auto; }
+  #loadMenu button { height: auto; min-height: 44px; padding: 6px 10px; align-items: flex-start; }
+  #loadMenu .li { display: grid; gap: 1px; min-width: 0; }
+  #loadMenu .lt { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 340px; }
+  #loadMenu .ls { font-size: 12px; color: var(--ink-3); }
+  #loadMenu button .tick { margin-top: 2px; }
+  #askDlg { border: 1px solid var(--line); border-radius: 14px; padding: 22px 24px 18px; max-width: 460px; background: var(--panel); color: var(--ink); box-shadow: var(--shadow), 0 24px 60px -20px rgba(0, 0, 0, .45); }
+  #askDlg::backdrop { background: rgba(14, 21, 32, .35); }
+  #askDlg h2 { margin: 0 0 8px; font-size: 16px; }
+  #askDlg p { margin: 0 0 18px; color: var(--ink-2); }
+  #askDlg .dbtns { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+  #askDlg button.danger { color: var(--pain); border-color: color-mix(in srgb, var(--pain) 45%, transparent); }
+  .sfields .cf { display: grid; gap: 3px; font-size: 12px; color: var(--ink-3); }
+  #actionsBtn { display: inline-flex; align-items: center; gap: 6px; padding-right: 8px; }
+  #actionsBtn[aria-expanded="true"] { background: var(--signal-soft); border-color: var(--signal); color: var(--signal); }
+  .cbar .end { margin-left: auto; }
+  input[type="text"], textarea { font: 13px/1.4 var(--sans); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; min-width: 0; width: 100%; }
+  input[type="text"] { height: 32px; }
+  input[type="text"]:hover, textarea:hover { border-color: var(--ink-3); }
+  input[type="text"]:focus, textarea:focus { outline: none; border-color: var(--signal); box-shadow: 0 0 0 3px var(--signal-soft); }
+  input::placeholder, textarea::placeholder { color: var(--ink-3); }
+  #sketchTitle { flex: 0 1 240px; width: 240px; min-width: 110px; font-weight: 600; }
+  .saved { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+  .saved.bad { color: var(--pain); font-weight: 500; }
+  button.primary { background: var(--signal); border-color: var(--signal); color: var(--signal-ink); }
+  button.primary:hover { filter: brightness(1.08); border-color: var(--signal); }
+  button:disabled { opacity: .4; cursor: default; }
+  #modeBtn { min-width: 84px; }
+  body.creating .viewseg, body.creating #diagramSel, body.creating .hint { display: none !important; }
+  body.connecting #diagramPane, body.linking #diagramPane { cursor: crosshair; }
+
+  #quick { position: absolute; left: 236px; right: 16px; bottom: 16px; display: flex; gap: 8px; align-items: center; padding: 6px 6px 6px 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); cursor: default; }
+  #quick[hidden] { display: none; }
+  #quick:focus-within { border-color: var(--signal); box-shadow: 0 0 0 3px var(--signal-soft), var(--shadow); }
+  #quick .in { font-size: 12px; color: var(--ink-2); background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; white-space: nowrap; max-width: 34%; overflow: hidden; text-overflow: ellipsis; }
+  #quickInput { flex: 1; border: 0; background: transparent; font: 14px var(--mono); height: 34px; }
+  #quickInput:focus { box-shadow: none; }
+  #cbanner { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; align-items: center; padding: 6px 6px 6px 14px; border-radius: 10px; background: var(--signal); color: var(--signal-ink); font-weight: 500; box-shadow: var(--shadow); z-index: 2; white-space: nowrap; cursor: default; }
+  #cbanner[hidden] { display: none; }
+  #cbanner button { height: 26px; background: transparent; color: inherit; border-color: color-mix(in srgb, var(--signal-ink) 45%, transparent); }
+  #diagram svg .node.vw-sel :is(rect, polygon, path, circle, ellipse) { stroke: var(--signal) !important; stroke-width: 3.5px !important; }
+  #diagram svg .cluster.vw-sel > rect { stroke: var(--signal) !important; stroke-width: 3px !important; }
+  #diagram svg .node.vw-from :is(rect, polygon, path, circle, ellipse) { stroke: var(--trace) !important; stroke-width: 4px !important; }
+
+  #creator { display: none; flex-direction: column; flex: 1; min-height: 0; }
+  body.creating aside > :not(#creator) { display: none; }
+  body.creating #creator { display: flex; }
+  #inspector { padding: 14px 16px; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+  #inspector .ihead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  #inspector .kind { font-weight: 600; font-size: 13px; }
+  #inspector .f { display: grid; gap: 3px; font-size: 12px; color: var(--ink-3); margin-top: 6px; }
+  #inspector select { max-width: none; width: 100%; }
+  #inspector .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  #inspector .arrows { margin-top: 10px; display: grid; gap: 6px; }
+  #inspector .arrow { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1fr) auto 28px; gap: 6px; align-items: center; font-size: 12.5px; }
+  #inspector .arrow .dir { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
+  #inspector .arrow input[type="text"] { height: 28px; }
+  #inspector .arrow label { display: inline-flex; gap: 4px; align-items: center; color: var(--ink-3); }
+  .iacts { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .iacts button, #inspector .arrow button { height: 28px; font-size: 12.5px; }
+  #inspector .arrow button { width: 28px; padding: 0; }
+  .ihelp { color: var(--ink-3); font-size: 12.5px; margin: 0; }
+  .ihelp kbd { font: 11px var(--mono); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; background: var(--panel); color: var(--ink-2); }
+
+  #creator .tabs { display: flex; gap: 2px; padding: 8px 12px 0; border-bottom: 1px solid var(--line); }
+  #creator .tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; height: 38px; color: var(--ink-2); padding: 0 12px; }
+  #creator .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--signal); font-weight: 600; }
+  #creator .tabs b { font: 500 11px/1 var(--mono); background: var(--panel-2); border: 1px solid var(--line); border-radius: 9px; padding: 2px 6px; margin-left: 6px; }
+  .cpane { flex: 1; overflow: auto; padding: 14px 16px 28px; }
+  .cpane[hidden] { display: none; }
+  .chead h3, .check h3 { margin: 0; font-size: 15px; letter-spacing: -.01em; }
+  .chead p { margin: 2px 0 12px; color: var(--ink-3); font-size: 12.5px; }
+  .muted { color: var(--ink-3); }
+  ol.plist, ol.slist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .plist li { display: grid; grid-template-columns: 36px 1fr 28px; gap: 8px; align-items: start; }
+  .ptoken { font: 600 12px/1 var(--mono); height: 32px; border-radius: 8px; display: grid; place-items: center; background: var(--pain-soft); color: var(--pain); border: 1px solid color-mix(in srgb, var(--pain) 35%, transparent); }
+  .pbody { display: grid; gap: 6px; }
+  .pstatus { font-size: 12px; color: var(--ink-3); }
+  .plist button.icon, .sbtns button { width: 28px; height: 28px; padding: 0; border-color: transparent; background: transparent; color: var(--ink-3); }
+  .plist button.icon:hover, .sbtns button:hover { color: var(--ink); background: var(--panel-2); }
+  .scard { border: 1px solid var(--line); border-radius: 12px; padding: 10px; background: var(--panel); display: grid; gap: 8px; }
+  .scard.active { border-color: var(--signal); box-shadow: 0 0 0 3px var(--signal-soft); }
+  .srow { display: grid; grid-template-columns: 32px 1fr auto; gap: 8px; align-items: center; }
+  .srow .token { width: 32px; height: 32px; font-size: 12px; }
+  .scard.active .token { background: var(--signal); border-color: var(--signal); color: var(--signal-ink); }
+  .sbtns { display: flex; }
+  .sfields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-left: 40px; }
+  .sfields.tobe { grid-template-columns: 1fr; }
+  .sfields.owned { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); }
+  .chips2 { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin-left: 40px; font-size: 12px; }
+  .chips2 .lbl { color: var(--ink-3); min-width: 62px; }
+  .chips2 .blist { display: contents; }
+  .pchip { height: 24px; padding: 0 9px; border-radius: 12px; font: 600 11.5px/1 var(--mono); }
+  .pchip[aria-pressed="true"] { background: var(--pain); border-color: var(--pain); color: #fff; }
+  .bchip { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 2px 9px; }
+  .linkbtn { height: 24px; font-size: 12px; padding: 0 10px; border-radius: 12px; }
+  .linkbtn[aria-pressed="true"] { background: var(--signal); border-color: var(--signal); color: var(--signal-ink); }
+  button.add { width: 100%; margin-top: 10px; border-style: dashed; background: transparent; color: var(--ink-2); }
+  .check { margin-top: 22px; border-top: 1px solid var(--line); padding-top: 14px; }
+  .check .warns { margin: 8px 0 0; padding-left: 18px; color: var(--pain); font-size: 12.5px; }
+  .check .ok { color: var(--trace); font-size: 12.5px; margin: 6px 0 0; }
+  .scorerow { display: grid; grid-template-columns: 36px 1fr; gap: 8px; margin-top: 12px; }
+  .scorerow .ptext { font-weight: 500; }
+  .scorerow .fix { font-size: 12.5px; color: var(--ink-2); margin: 2px 0 6px; }
+  #creator .tabs button { padding: 0 9px; }
+  .hlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .hrow { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; padding: 7px 8px; border-radius: 10px; cursor: pointer; }
+  .hrow:hover { background: var(--panel-2); }
+  .hrow.sel { background: var(--signal-soft); }
+  .hrow .hn { font: 600 11.5px/1 var(--mono); color: var(--ink-2); height: 26px; border-radius: 13px; display: grid; place-items: center; border: 1px solid var(--line); background: var(--panel); }
+  .hrow.sel .hn { background: var(--signal); border-color: var(--signal); color: var(--signal-ink); }
+  .hrow .hs { font-size: 13px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .hrow .ht { font-size: 11.5px; color: var(--ink-3); }
+  .hrow .now { font-size: 11px; font-weight: 600; color: var(--trace); border: 1px solid color-mix(in srgb, var(--trace) 45%, transparent); border-radius: 9px; padding: 1px 7px; }
+  .hdetail { border: 1px solid var(--signal); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; background: var(--panel); box-shadow: 0 0 0 3px var(--signal-soft); }
+  .hdetail .hdh { font-weight: 600; }
+  .hdetail ul { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--ink-2); }
+  #notes { min-height: 55vh; resize: vertical; font: 13.5px/1.6 var(--sans); }
+
+  .dtools { display: flex; gap: 6px; margin: -4px 0 12px; }
+  .dtools button { height: 28px; font-size: 12.5px; }
+  details.dsec { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); margin-bottom: 8px; }
+  details.dsec > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-weight: 600; border-radius: 12px; }
+  details.dsec > summary::-webkit-details-marker { display: none; }
+  details.dsec > summary::before { content: ""; flex: none; width: 7px; height: 7px; border-right: 1.6px solid var(--ink-3); border-bottom: 1.6px solid var(--ink-3); transform: rotate(-45deg); transition: transform .15s; margin-right: 2px; }
+  details.dsec[open] > summary::before { transform: rotate(45deg); }
+  details.dsec > summary:hover { background: var(--panel-2); }
+  details.dsec .st { white-space: nowrap; flex: none; }
+  details.dsec .fill { margin-left: auto; font: 500 11px/1 var(--mono); color: var(--ink-3); }
+  details.dsec .fill.done { color: var(--trace); }
+  details.dsec .sum { font-weight: 400; color: var(--ink-3); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .dsec .dbody { padding: 2px 12px 12px; display: grid; gap: 8px; }
+  .dsec label { display: grid; gap: 3px; font-size: 12px; color: var(--ink-2); font-weight: 500; }
+  .dsec textarea { min-height: 54px; resize: vertical; }
+  .dsec .dpains { font-size: 12.5px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: grid; gap: 4px; }
+  .dsec .dpains b { color: var(--pain); font-family: var(--mono); margin-right: 6px; }
+
+  .menu { position: absolute; z-index: 20; min-width: 230px; padding: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow), 0 12px 32px -16px rgba(0, 0, 0, .35); cursor: default; }
+  #actionsMenu { position: fixed; min-width: 260px; }
+  .menu[hidden] { display: none; }
+  .menu button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; background: transparent; height: 30px; border-radius: 6px; font-weight: 400; padding: 0 10px; }
+  .menu button:hover:not(:disabled), .menu button:focus-visible { background: var(--signal-soft); color: var(--signal); outline: none; }
+  .menu button kbd { margin-left: auto; font: 11px var(--mono); color: var(--ink-3); }
+  .menu button .tick { width: 12px; flex: none; color: var(--signal); }
+  .menu hr { border: 0; border-top: 1px solid var(--line); margin: 5px 2px; }
+  .menu .mh { font-size: 12px; color: var(--ink-3); padding: 4px 10px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px; }
+  .menu .danger { color: var(--pain); }
+
+  body.creating #diagram svg :is(.node, .cluster) { cursor: grab; }
+  body.dragging-box, body.dragging-box * { cursor: grabbing !important; user-select: none; }
+
   @media (max-width: 860px) {
     .bar { flex-wrap: wrap; padding: 10px 16px; }
     .tools { flex-wrap: wrap; }
+    .cbar { flex-wrap: wrap; padding: 8px 16px; }
     .brand { flex-basis: 100%; }
-    .brand .where, .legend .keys, select, .live { display: none; }
+    .brand .where, .legend .keys, .tools select, .live { display: none; }
     main { flex-direction: column; }
     aside { width: 100%; max-width: none; height: 48vh; border-left: 0; border-top: 1px solid var(--line); }
   }
@@ -191,12 +359,12 @@
     </div>
   </div>
   <div class="tools">
-    <select id="diagramSel" title="Choose diagram" hidden></select>
-    <select id="tableSel" title="Choose step table" hidden></select>
-    <div class="group seg" role="group" aria-label="View">
+    <select id="diagramSel" title="Choose a diagram. Its step table comes with it." hidden></select>
+    <div class="group seg viewseg" role="group" aria-label="View">
       <button id="modeDetail" aria-pressed="true" title="Every box and arrow">Detail</button>
       <button id="modeOverview" aria-pressed="false" title="One box per group, for the big picture (O)">Overview</button>
     </div>
+    <button id="modeBtn" title="Edit what is shown here, or start a sketch">Edit</button>
     <select id="layoutSel" title="Diagram layout"><option value="dagre">Standard layout</option><option value="elk">Compact layout</option></select>
     <div class="group" role="group" aria-label="Zoom">
       <button class="icon" id="zoomOut" title="Zoom out" aria-label="Zoom out"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3.5 8h9"/></svg></button>
@@ -205,16 +373,41 @@
       <button id="zoomFit" title="Show the whole diagram (F)">Fit</button>
     </div>
     <button class="icon" id="themeBtn" title="Switch light or dark" aria-label="Switch light or dark"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11a5.5 5.5 0 0 0 0-11z" fill="currentColor"/></svg></button>
+    <button id="newBtn" title="Start a new, empty sketch">New</button>
+    <button id="loadBtn" aria-haspopup="menu" aria-expanded="false" title="Open a sketch saved in this browser">Load<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m4.5 6.5 3.5 3.5 3.5-3.5"/></svg></button>
     <button id="openBtn" title="Open a Markdown file from disk">Open file</button>
     <input id="fileInput" type="file" accept=".md,.markdown,.txt" hidden>
     <span class="live" id="live"><i></i><span>No source</span></span>
   </div>
 </header>
+<div class="cbar" id="cbar" hidden>
+  <div class="cgroup sketch">
+    <input type="text" id="sketchTitle" placeholder="Name this sketch" aria-label="Sketch name">
+  </div>
+  <div class="group seg" id="boardSeg" role="group" aria-label="Board"></div>
+  <button id="actionsBtn" aria-haspopup="menu" aria-expanded="false" title="Add boxes, change the layout, export">Actions<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m4.5 6.5 3.5 3.5 3.5-3.5"/></svg></button>
+  <div class="group" role="group" aria-label="History">
+    <button class="icon" id="undoBtn" title="Undo (⌘Z)" aria-label="Undo"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5.5 3.5 2.5 6.5l3 3"/><path d="M2.5 6.5h7a4 4 0 0 1 0 8h-2"/></svg></button><button class="icon" id="redoBtn" title="Redo (⇧⌘Z)" aria-label="Redo"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m10.5 3.5 3 3-3 3"/><path d="M13.5 6.5h-7a4 4 0 0 0 0 8h2"/></svg></button>
+  </div>
+  <div class="cgroup end">
+    <span class="saved" id="saveState"></span>
+  </div>
+</div>
+<div class="menu" id="actionsMenu" role="menu" aria-label="Actions" hidden></div>
+<div class="menu" id="loadMenu" role="menu" aria-label="Saved sketches" hidden></div>
+<dialog id="askDlg"></dialog>
 <main>
   <section id="diagramPane" aria-label="Diagram">
     <div id="diagram"></div>
     <div id="minimap" hidden title="Click to move there"><div class="view"></div></div>
     <span class="hint" id="hint" hidden>Drag to move. Pinch or Ctrl + scroll to zoom.</span>
+    <div id="cbanner" hidden></div>
+    <div class="menu" id="ctxmenu" role="menu" hidden></div>
+    <form id="quick" hidden autocomplete="off">
+      <span class="in" id="quickGroup" title="New boxes go outside any group. Start the line with [Group name] to put that line's boxes into the group."></span>
+      <input type="text" id="quickInput" aria-label="Quick add" placeholder="Requester -> Ops inbox : email" title="A -> B : label adds boxes and an arrow. ..> draws a dashed arrow. [Group] picks the group for new boxes. person:, store:, decision: or gate: in front of a name sets its shape. Press / to jump here.">
+      <button type="submit">Add</button>
+    </form>
   </section>
   <aside aria-label="Steps">
     <div class="side-head">
@@ -230,6 +423,24 @@
       <div id="component" aria-live="polite"></div>
     </div>
     <ol id="steps"></ol>
+    <div id="creator">
+      <div id="inspector"></div>
+      <div class="tabs" role="tablist">
+        <button role="tab" data-tab="discovery">Discovery<b id="cntDiscovery">0</b></button>
+        <button role="tab" data-tab="pains">Pains<b id="cntPains">0</b></button>
+        <button role="tab" data-tab="steps">Steps<b id="cntSteps">0</b></button>
+        <button role="tab" data-tab="notes">Notes</button>
+        <button role="tab" data-tab="diffs">Diffs<b id="cntDiffs">0</b></button>
+      </div>
+      <div class="cpane" id="tab-discovery"></div>
+      <div class="cpane" id="tab-pains"></div>
+      <div class="cpane" id="tab-steps"></div>
+      <div class="cpane" id="tab-diffs"></div>
+      <div class="cpane" id="tab-notes">
+        <div class="chead"><h3>Notes</h3><p>Anything that doesn't fit the form. Label what you assumed or synthesized.</p></div>
+        <textarea id="notes" placeholder="Answers, numbers, quotes, assumptions"></textarea>
+      </div>
+    </div>
     <div class="legend"><span><i></i>Step</span><span class="t"><i></i>Touched by it</span><span class="keys">← → to step, Space to play</span></div>
   </aside>
 </main>
@@ -258,32 +469,33 @@ function splitRow(line) {
   return cells;
 }
 
+// Line numbers (0-based) are kept so an edited copy can put a new diagram or table back in the same place.
 function parseMarkdown(text) {
   const lines = text.split(/\r?\n/);
-  const doc = { title: "", diagrams: [], tables: [] };
-  let heading = "";
+  const doc = { title: "", titleLine: -1, diagrams: [], tables: [] };
+  let heading = "", pos = 0;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const fence = line.match(/^\s*(`{3,}|~{3,})\s*(\S*)/);
     if (fence) {
       const close = new RegExp("^\\s*" + fence[1][0] + "{" + fence[1].length + ",}\\s*$");
-      const body = [];
+      const from = i, body = [];
       for (i++; i < lines.length && !close.test(lines[i]); i++) body.push(lines[i]);
-      if (fence[2].toLowerCase() === "mermaid") doc.diagrams.push({ heading, src: body.join("\n") });
+      if (fence[2].toLowerCase() === "mermaid") doc.diagrams.push({ heading, src: body.join("\n"), pos: pos++, from, to: i });
       continue;
     }
     const h = line.match(/^(#{1,6})\s+(.*?)\s*#*\s*$/);
     if (h) {
-      if (h[1].length === 1 && !doc.title) doc.title = stripMd(h[2]);
+      if (h[1].length === 1 && !doc.title) { doc.title = stripMd(h[2]); doc.titleLine = i; }
       heading = stripMd(h[2]);
       continue;
     }
     if (/^\s*\|/.test(line) && i + 1 < lines.length && /^\s*\|?\s*:?-{3,}/.test(lines[i + 1])) {
-      const header = splitRow(line).map(stripMd);
-      const rows = [];
-      for (i += 2; i < lines.length && /^\s*\|/.test(lines[i]); i++) rows.push(splitRow(lines[i]));
+      const header = splitRow(line).map(stripMd), from = i, headerRaw = line, sepRaw = lines[i + 1];
+      const rows = [], raws = [];
+      for (i += 2; i < lines.length && /^\s*\|/.test(lines[i]); i++) { rows.push(splitRow(lines[i])); raws.push(lines[i]); }
       i--;
-      doc.tables.push({ heading, header, rows });
+      doc.tables.push({ heading, header, rows, raws, headerRaw, sepRaw, pos: pos++, from, to: i });
     }
   }
   return doc;
@@ -327,21 +539,29 @@ function isKeyCell(c) { return c && c.length <= 6 && !/\s/.test(c); }
 // Pick the diagram, table and key column that fit best. Score = distinct matching keys × share of rows that match.
 // Real step keys are distinct and nearly every row matches; columns like "Environment" repeat one value
 // (E1, E1, …) and match only some rows, so they score low even when those values appear in the diagram.
-function chooseSources(doc, forcedDiagram, forcedTable) {
+// A diagram first tries the tables between it and the next diagram, then all tables.
+function chooseSources(doc, forcedDiagram) {
   let best = null;
   doc.diagrams.forEach((d, di) => {
     if (forcedDiagram != null && di !== forcedDiagram) return;
-    doc.tables.forEach((t, ti) => {
-      if (forcedTable != null && ti !== forcedTable) return;
-      if (!t.rows.length) return;
-      for (let col = 0; col < t.header.length; col++) {
-        const hits = t.rows.map((r) => stripMd(r[col] || "")).filter((c) => isKeyCell(c) && hasKey(d.src, c));
-        const distinct = new Set(hits).size;
-        if (distinct < 2) continue;
-        const score = distinct * (hits.length / t.rows.length);
-        if (!best || score > best.score) best = { di, ti, col, score };
-      }
-    });
+    const next = doc.diagrams[di + 1]?.pos ?? Infinity;
+    const pick = scoreTables(doc, d, (t) => t.pos > d.pos && t.pos < next, true) || scoreTables(doc, d, () => true);
+    if (pick && (!best || pick.score > best.score)) best = { di, ...pick };
+  });
+  return best;
+}
+// A table in the diagram's own section may have a single step, when that step's key is in the diagram.
+function scoreTables(doc, d, accept, own = false) {
+  let best = null;
+  doc.tables.forEach((t, ti) => {
+    if (!t.rows.length || !accept(t)) return;
+    for (let col = 0; col < t.header.length; col++) {
+      const hits = t.rows.map((r) => stripMd(r[col] || "")).filter((c) => isKeyCell(c) && hasKey(d.src, c));
+      const distinct = new Set(hits).size;
+      if (distinct < 2 && !(own && distinct === 1 && hits.length === t.rows.length)) continue;
+      const score = distinct * (hits.length / t.rows.length);
+      if (!best || score > best.score) best = { ti, col, score };
+    }
   });
   return best;
 }
@@ -476,6 +696,84 @@ function buildSteps(model, table, keyCol) {
     for (const id of s.P) s.S.delete(id);
   });
   return { steps, keyCol, nameCol, header: table.header };
+}
+
+/* ---------------- Pinned positions: %% @pos <node>: <x> <y> ---------------- */
+
+// Mermaid always lays the diagram out itself. A pinned box is moved to its saved centre after rendering;
+// its arrows are redrawn straight and the groups around it are resized to fit their boxes again.
+function parsePins(src) {
+  const pins = new Map();
+  for (const m of src.matchAll(/^\s*%%\s*@pos\s+(\S+?)\s*:\s*(-?[\d.]+)[\s,]+(-?[\d.]+)\s*$/gm)) pins.set(m[1], { x: +m[2], y: +m[3] });
+  return pins;
+}
+// Element coordinates to SVG user coordinates (the viewBox space) and back.
+function relMatrix(svg, el) { return svg.getScreenCTM().inverse().multiply(el.getScreenCTM()); }
+function userBox(svg, el) {
+  const b = el.getBBox(), m = relMatrix(svg, el);
+  const p = new DOMPoint(b.x, b.y).matrixTransform(m), q = new DOMPoint(b.x + b.width, b.y + b.height).matrixTransform(m);
+  return { x: Math.min(p.x, q.x), y: Math.min(p.y, q.y), w: Math.abs(q.x - p.x), h: Math.abs(q.y - p.y) };
+}
+const centre = (b) => ({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
+function shiftBy(el, dx, dy) {
+  const t = el.transform.baseVal.consolidate()?.matrix;
+  el.setAttribute("transform", `translate(${(t ? t.e : 0) + dx}, ${(t ? t.f : 0) + dy})`);
+}
+function moveNodeTo(svg, el, x, y) { const c = centre(userBox(svg, el)); shiftBy(el, x - c.x, y - c.y); }
+function idBox(svg, model, id) {
+  const n = model.nodes.get(id);
+  if (!n) return null;
+  return userBox(svg, n.kind === "cluster" ? n.el.querySelector(":scope > rect") || n.el : n.el);
+}
+// The point where the line from the box centre towards (tx, ty) leaves the box, plus a small gap.
+function borderPoint(b, tx, ty, gap) {
+  const c = centre(b), dx = tx - c.x, dy = ty - c.y;
+  if (!dx && !dy) return c;
+  const s = Math.min((b.w / 2 + gap) / Math.abs(dx || 1e-9), (b.h / 2 + gap) / Math.abs(dy || 1e-9));
+  return { x: c.x + dx * s, y: c.y + dy * s };
+}
+function rerouteEdge(svg, model, e) {
+  const a = idBox(svg, model, e.from), z = idBox(svg, model, e.to);
+  if (!a || !z) return;
+  const p1 = borderPoint(a, centre(z).x, centre(z).y, 2), p2 = borderPoint(z, centre(a).x, centre(a).y, 4);
+  const inv = relMatrix(svg, e.el).inverse();
+  const l1 = new DOMPoint(p1.x, p1.y).matrixTransform(inv), l2 = new DOMPoint(p2.x, p2.y).matrixTransform(inv);
+  e.el.setAttribute("d", `M${l1.x},${l1.y}L${l2.x},${l2.y}`);
+  if (e.labelEl) { const c = centre(userBox(svg, e.labelEl)); shiftBy(e.labelEl, (p1.x + p2.x) / 2 - c.x, (p1.y + p2.y) / 2 - c.y); }
+}
+function fitCluster(svg, model, c) {
+  const rect = c.el.querySelector(":scope > rect");
+  const members = [...model.nodes.values()].filter((m) => m.parent === c.id);
+  if (!rect || !members.length) return;
+  const label = c.el.querySelector(":scope > .cluster-label");
+  const top = (label ? userBox(svg, label).h : 0) + 14, pad = 16, old = userBox(svg, rect);
+  let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+  for (const m of members) { const b = idBox(svg, model, m.id); x1 = Math.min(x1, b.x); y1 = Math.min(y1, b.y); x2 = Math.max(x2, b.x + b.w); y2 = Math.max(y2, b.y + b.h); }
+  const nb = { x: x1 - pad, y: y1 - pad - top, w: x2 - x1 + 2 * pad, h: y2 - y1 + 2 * pad + top };
+  const inv = relMatrix(svg, rect).inverse(), p = new DOMPoint(nb.x, nb.y).matrixTransform(inv);
+  rect.setAttribute("x", p.x); rect.setAttribute("y", p.y); rect.setAttribute("width", nb.w); rect.setAttribute("height", nb.h);
+  if (label) shiftBy(label, centre(nb).x - centre(old).x, nb.y - old.y);
+}
+// After boxes moved: resize the groups around them (inner first) and redraw the arrows that touch them.
+function settleAround(svg, model, moved, grow = true) {
+  const groups = new Set();
+  for (const id of moved) for (let p = model.nodes.get(id)?.parent; p; p = model.nodes.get(p)?.parent) groups.add(p);
+  const depth = (id) => { let d = 0; for (let p = model.nodes.get(id)?.parent; p; p = model.nodes.get(p)?.parent) d++; return d; };
+  [...groups].sort((a, b) => depth(b) - depth(a)).forEach((id) => fitCluster(svg, model, model.nodes.get(id)));
+  for (const e of model.edges) if (e.from && e.to && (moved.has(e.from) || moved.has(e.to) || groups.has(e.from) || groups.has(e.to))) rerouteEdge(svg, model, e);
+  if (!grow) return;
+  const vb = svg.viewBox.baseVal, bb = svg.getBBox(), pad = 16;
+  const x1 = Math.min(vb.x, bb.x - pad), y1 = Math.min(vb.y, bb.y - pad);
+  const x2 = Math.max(vb.x + vb.width, bb.x + bb.width + pad), y2 = Math.max(vb.y + vb.height, bb.y + bb.height + pad);
+  svg.setAttribute("viewBox", `${x1} ${y1} ${x2 - x1} ${y2 - y1}`);
+}
+function applyPins(svg, model, pins) {
+  const moved = new Set();
+  for (const [id, p] of pins) {
+    const n = model.nodes.get(id);
+    if (n?.kind === "node") { moveNodeTo(svg, n.el, p.x, p.y); moved.add(id); }
+  }
+  if (moved.size) settleAround(svg, model, moved);
 }
 
 /* ---------------- Overview: one box per top-level group ---------------- */
@@ -646,8 +944,18 @@ function isDark() {
 
 // Text sizes in diagram units. Mermaid lays the boxes out for BOX_FONT, so boxes grow with it.
 // Group (subgraph) titles and arrow labels keep their own size.
-const BOX_FONT = 26, GROUP_FONT = 18, ARROW_LABEL_FONT = 34;
-document.documentElement.style.setProperty("--arrow-label-scale", ARROW_LABEL_FONT / BOX_FONT);
+// Sketches started from scratch use half the arrow label size: their labels are short notes, not commands.
+const BOX_FONT = 26, GROUP_FONT = 18, ARROW_LABEL_FONT = 34, SKETCH_ARROW_LABEL_FONT = 17;
+// The sketch behind the text shown (Edit mode, or a file exported from it), or null.
+function shownSketch() { return (state.creating || state.sketchView ? cr.sk : embeddedSketch(state.text)?.sk) || null; }
+// True when the text shown is a sketch started from scratch (not a copy of a file).
+function showingSketch() { const sk = shownSketch(); return !!sk && !sk.source; }
+// The columns Edit mode writes the pains into: "Pain" (as-is), "Removes" (proposed), "Pains" (a copy of a file).
+const PAIN_COLS = new Set(["pain", "removes", "pains", "pains (tagged)"]);
+function setArrowLabelSize() {
+  const font = showingSketch() ? SKETCH_ARROW_LABEL_FONT : ARROW_LABEL_FONT;
+  document.documentElement.style.setProperty("--arrow-label-scale", font / BOX_FONT);
+}
 
 // Mermaid draws with the page's own tokens, so the diagram and the chrome match.
 function initMermaid() {
@@ -677,7 +985,7 @@ function initMermaid() {
 
 /* ---------------- Rendering and interaction ---------------- */
 
-const state = { text: "", name: "", mtime: null, live: false, forcedDiagram: null, forcedTable: null,
+const state = { text: "", name: "", mtime: null, live: false, forcedDiagram: null,
   model: null, flow: null, svg: null, sel: -1, comp: null, playing: null, renderSeq: 0, layout: "dagre", mode: "detail", ov: null, ovSets: null };
 
 function showMessage(title, html, isError) {
@@ -688,22 +996,30 @@ function showMessage(title, html, isError) {
 }
 
 async function render() {
+  setArrowLabelSize();
   const doc = parseMarkdown(state.text);
   $("docTitle").textContent = doc.title || state.name || "Architecture Viewer";
   document.title = doc.title || "Architecture Viewer";
-  fillSelect($("diagramSel"), doc.diagrams.map((d, i) => d.heading || `Diagram ${i + 1}`), state.forcedDiagram);
-  fillSelect($("tableSel"), doc.tables.map((t, i) => t.heading || `Table ${i + 1}`), state.forcedTable);
+  // Only diagrams with a step table can be walked through, and each one brings its own table.
+  // The picker appears only when there is more than one of them.
+  // A sketch shows every diagram, also before it has steps.
+  const loose = state.creating || state.sketchView;
+  const usable = doc.diagrams.map((d, i) => i).filter((i) => loose || chooseSources(doc, i));
+  $("diagramSel").hidden = usable.length < 2;
+  $("diagramSel").innerHTML = usable.map((i) => `<option value="${i}">${esc(doc.diagrams[i].heading || `Diagram ${i + 1}`)}</option>`).join("");
   if (!doc.diagrams.length) {
     return showMessage("No diagram in this file", `<p>Add a <code>\`\`\`mermaid</code> code block to <code>${esc(state.name)}</code>. The format is described in <code>format_specification.md</code>.</p>`, true);
   }
-  const pick = chooseSources(doc, state.forcedDiagram, state.forcedTable);
+  // A sketch's board renders before its steps match: then it has no step list.
+  const pick = chooseSources(doc, state.forcedDiagram)
+    || (loose ? { di: Math.max(0, state.forcedDiagram ?? 0), ti: -1, col: 0 } : null);
   if (!pick) {
     return showMessage("No step table matches the diagram", "<p>A step table needs one column of short step keys, such as <code>①</code> or <code>3a</code>, and the same keys must appear in the diagram labels. The format is described in <code>format_specification.md</code>.</p>", true);
   }
-  $("diagramSel").value = pick.di; $("tableSel").value = pick.ti;
+  $("diagramSel").value = pick.di;
   const diagram = doc.diagrams[pick.di], table = doc.tables[pick.ti];
   $("docSub").textContent = diagram.heading || state.name;
-  $("stepsTitle").textContent = table.heading || "Steps";
+  $("stepsTitle").textContent = table?.heading || "Steps";
 
   const seq = ++state.renderSeq;
   let svgText;
@@ -718,10 +1034,12 @@ async function render() {
   if (seq !== state.renderSeq) return;
   let svg = mountSvg(svgText);
   state.model = buildModel(svg, diagram.src);
-  state.flow = buildSteps(state.model, table, pick.col);
+  const pins = parsePins(diagram.src);
+  if (pins.size) applyPins(svg, state.model, pins);
+  state.flow = table ? buildSteps(state.model, table, pick.col) : { steps: [], keyCol: 0, nameCol: 1, header: [] };
   state.ov = null; state.ovSets = null;
   if (state.comp?.endsWith("__rest")) state.comp = state.comp.slice(0, -6);
-  if (state.mode === "overview") {
+  if (state.mode === "overview" && !state.creating) {
     // The overview is computed from the detailed model, then drawn as its own small diagram.
     const ov = buildOverview(diagram.src, state.model, state.flow);
     try {
@@ -746,14 +1064,17 @@ async function render() {
   state.svg = svg;
   const vb = svg.viewBox.baseVal;
   cam.full = { x: vb.x, y: vb.y, w: vb.width, h: vb.height };
-  $("stepsSub").textContent = `${state.flow.steps.length} steps. Click a step, or a box in the diagram.`;
+  $("stepsSub").textContent = !table && state.sketchView ? "No steps yet. Add them in Edit mode and link them to boxes."
+    : `${state.flow.steps.length} steps. Click a step, or a box in the diagram.`;
   for (const n of state.model.nodes.values()) {
-    n.el.addEventListener("click", (ev) => { ev.stopPropagation(); selectComponent(n.id); });
+    n.el.addEventListener("click", (ev) => { ev.stopPropagation(); if (state.creating) crNodeClick(n.id); else selectComponent(n.id); });
   }
-  svg.addEventListener("click", (e) => { if (!e.target.closest(".node, .cluster")) clearAll(); });
+  svg.addEventListener("click", (e) => { if (!e.target.closest(".node, .cluster")) state.creating ? crDeselect() : clearAll(); });
   renderSteps();
   $("hint").hidden = false;
-  const keep = cam.cur && seq > 1 && !state.relayout;
+  // While sketching, the whole board stays in view after each edit, unless you moved the camera yourself.
+  const keep = cam.cur && seq > 1 && !state.relayout && !(state.creating && !cr.camMoved);
+  if (state.creating && state.relayout) cr.camMoved = false;
   state.relayout = false;
   setView(keep ? cam.cur : overview());
   if (state.sel >= state.flow.steps.length) state.sel = -1;
@@ -762,6 +1083,7 @@ async function render() {
   else if (state.comp) selectComponent(state.comp);
   else { $("component").className = ""; $("steps").classList.remove("filtering"); highlight(); updateProgress(); }
   state.focusComp = false;
+  crAfterRender();
 }
 
 function mountSvg(svgText) {
@@ -770,24 +1092,33 @@ function mountSvg(svgText) {
   svg.style.maxWidth = "none";
   svg.setAttribute("width", "100%"); svg.setAttribute("height", "100%");
   svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  if (showingSketch()) markPainTags(svg);
   return svg;
+}
+// A sketch writes "⚠ P1 P2" into a box label for the pains of its steps. Each tag gets the pain colour,
+// and data-p, so selecting a pain in Edit mode can light it up.
+function markPainTags(svg) {
+  for (const label of svg.querySelectorAll(".node foreignObject div, .node foreignObject span.nodeLabel")) {
+    const walk = document.createTreeWalker(label, NodeFilter.SHOW_TEXT), hits = [];
+    while (walk.nextNode()) if (/⚠\s*P\d+/.test(walk.currentNode.nodeValue) && !walk.currentNode.parentElement.closest(".vw-pain")) hits.push(walk.currentNode);
+    for (const t of hits) {
+      const span = document.createElement("span");
+      span.innerHTML = esc(t.nodeValue).replace(/⚠((?:\s*P\d+)+)/g, (m, ids) => `<span class="vw-pain">⚠${ids.replace(/P\d+/g, (id) => `<span data-p="${id}">${id}</span>`)}</span>`);
+      t.replaceWith(...span.childNodes);
+    }
+  }
 }
 
 // The highlight sets of a step in the current view.
 function setsFor(s) { return state.ovSets ? state.ovSets[s.idx] : s; }
 function membersOf(id) { return state.ov?.members.get(id) || new Set([id]); }
 
-function fillSelect(sel, labels, forced) {
-  sel.hidden = labels.length < 2;
-  sel.innerHTML = labels.map((l, i) => `<option value="${i}">${esc(l)}</option>`).join("");
-  if (forced != null) sel.value = forced;
-}
-
 function renderSteps() {
   const { steps, keyCol, nameCol, header } = state.flow;
+  const painCol = shownSketch() ? header.map((h) => PAIN_COLS.has(stripMd(h || "").trim().toLowerCase())) : [];
   $("steps").innerHTML = steps.map((s) => {
     const detail = s.cells.map((c, i) => (i === keyCol || i === nameCol || !c) ? "" :
-      `<dt>${esc(header[i] || "")}</dt><dd>${inlineMd(c)}</dd>`).join("");
+      `<dt>${esc(header[i] || "")}</dt><dd${painCol[i] ? ' class="pains"' : ""}>${inlineMd(c)}</dd>`).join("");
     return `<li data-idx="${s.idx}" tabindex="0"><span class="token" title="${esc(s.key)}">${esc(displayKey(s.key))}</span><span class="name">${inlineMd(s.cells[nameCol] || "")}</span>${detail ? `<dl class="detail">${detail}</dl>` : ""}</li>`;
   }).join("");
   $("steps").querySelectorAll("li").forEach((li) => {
@@ -915,7 +1246,13 @@ function fitAspect(v) {
 }
 function overview() {
   const f = cam.full, pad = Math.max(f.w, f.h) * 0.02;
-  const v = fitAspect({ x: f.x - pad, y: f.y - pad, w: f.w + 2 * pad, h: f.h + 2 * pad });
+  const box = { x: f.x - pad, y: f.y - pad, w: f.w + 2 * pad, h: f.h + 2 * pad };
+  if (state.creating) {
+    // Keep the banner (top) and the quick-add bar (bottom) clear of the board.
+    const p = paneSize(), k = Math.min(p.w / box.w, (p.h - 140) / box.h);
+    box.y -= 60 / k; box.h += 140 / k;
+  }
+  const v = fitAspect(box);
   // A small diagram is shown at most at MAX_SCALE, centred, instead of blown up.
   const minW = paneSize().w / MAX_SCALE;
   if (v.w >= minW) return v;
@@ -992,6 +1329,7 @@ function focusStep(s) {
   focusOn(own.length ? own : core.length ? core : wide);
 }
 function zoomAround(factor, px, py) {
+  cr.camMoved = true;
   const c = cam.cur, p = paneSize();
   const minW = p.w / MAX_SCALE / 1.5, maxW = overview().w * 1.5;
   const w = Math.min(maxW, Math.max(minW, c.w / factor)), k = w / c.w;
@@ -1005,7 +1343,9 @@ function zoomBy(f) { if (!cam.cur) return; cancelAnimationFrame(cam.raf); const 
   const pane = $("diagramPane");
   let drag = null, moved = false;
   pane.addEventListener("pointerdown", (e) => {
-    if (e.button !== 0 || !cam.cur || e.target.closest("#minimap, .empty")) return;
+    if (e.button !== 0 || !cam.cur || e.target.closest("#minimap, .empty, #quick, #cbanner, #ctxmenu")) return;
+    // A box drags itself; a group drags by its title. Anywhere else, including inside a group, the diagram moves.
+    if (state.creating && !cr.preview && !cr.connect && cr.linking < 0 && e.target.closest("#diagram .node, #diagram .cluster-label")) return startBoxDrag(e);
     cancelAnimationFrame(cam.raf);
     drag = { x: e.clientX, y: e.clientY, v: { ...cam.cur } }; moved = false;
   });
@@ -1015,17 +1355,21 @@ function zoomBy(f) { if (!cam.cur) return; cancelAnimationFrame(cam.raf); const 
     if (!moved && Math.hypot(dx, dy) < 4) return;
     if (!moved) { moved = true; pane.classList.add("dragging"); pane.setPointerCapture?.(e.pointerId); }
     const upp = drag.v.w / paneSize().w;
+    cr.camMoved = true;
     setView({ ...drag.v, x: drag.v.x - dx * upp, y: drag.v.y - dy * upp });
   });
   addEventListener("pointerup", () => { drag = null; pane.classList.remove("dragging"); });
   // A drag must not count as a click on a box.
   pane.addEventListener("click", (e) => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
   pane.addEventListener("wheel", (e) => {
-    if (!cam.cur || e.target.closest(".empty")) return;
+    if (!cam.cur || e.target.closest(".empty, #ctxmenu")) return;
     e.preventDefault(); cancelAnimationFrame(cam.raf);
     const r = pane.getBoundingClientRect();
     if (e.ctrlKey || e.metaKey) return zoomAround(Math.exp(-e.deltaY * 0.01), e.clientX - r.left, e.clientY - r.top);
+    // In Edit mode the scroll wheel zooms at the pointer; dragging the background moves the diagram.
+    if (state.creating) return zoomAround(Math.exp(-(e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY) * 0.0015), e.clientX - r.left, e.clientY - r.top);
     const upp = cam.cur.w / paneSize().w;
+    cr.camMoved = true;
     setView({ ...cam.cur, x: cam.cur.x + e.deltaX * upp, y: cam.cur.y + e.deltaY * upp });
   }, { passive: false });
 })();
@@ -1065,6 +1409,7 @@ $("minimap").addEventListener("pointerdown", (e) => {
     const r = svg.getBoundingClientRect(), f = cam.full;
     const x = f.x + ((ev.clientX - r.left) / r.width) * f.w, y = f.y + ((ev.clientY - r.top) / r.height) * f.h;
     cancelAnimationFrame(cam.raf);
+    cr.camMoved = true;
     setView({ ...cam.cur, x: x - cam.cur.w / 2, y: y - cam.cur.h / 2 });
   };
   move(e);
@@ -1081,7 +1426,8 @@ async function loadFromServer() {
     const r = await fetch("api/source", { cache: "no-store" });
     if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText);
     const j = await r.json();
-    Object.assign(state, { text: j.text, name: j.name, mtime: j.mtime, live: true });
+    if (state.creating) return true;
+    Object.assign(state, { text: j.text, name: j.name, mtime: j.mtime, live: true, sketchView: false });
     setLive(`Live: ${j.name}`, true);
     await render();
     return true;
@@ -1103,8 +1449,11 @@ async function poll() {
 }
 
 async function loadFile(file) {
-  state.text = await file.text(); state.name = file.name; state.live = false;
-  state.forcedDiagram = state.forcedTable = null; state.sel = -1; state.comp = null; cam.cur = null;
+  const text = await file.text();
+  // While editing, an opened file is edited too: its own sketch, or a copy of its diagrams and tables.
+  if (state.creating) return editText(text, file.name);
+  state.text = text; state.name = file.name; state.live = false; state.sketchView = false;
+  state.forcedDiagram = null; state.sel = -1; state.comp = null; cam.cur = null;
   setLive(`File: ${file.name}`, false);
   await render();
 }
@@ -1116,15 +1465,14 @@ addEventListener("dragleave", (e) => { if (!e.relatedTarget) $("drop").classList
 addEventListener("drop", (e) => { e.preventDefault(); $("drop").classList.remove("show"); const f = e.dataTransfer.files[0]; if (f) loadFile(f); });
 
 // A different diagram or table starts from the overview.
-$("diagramSel").addEventListener("change", (e) => { state.forcedDiagram = +e.target.value; state.forcedTable = null; state.sel = -1; state.comp = null; state.relayout = true; render(); });
-$("tableSel").addEventListener("change", (e) => { state.forcedTable = +e.target.value; state.sel = -1; state.comp = null; state.relayout = true; render(); });
+$("diagramSel").addEventListener("change", (e) => { state.forcedDiagram = +e.target.value; state.sel = -1; state.comp = null; state.relayout = true; render(); });
 $("prevBtn").addEventListener("click", () => step(-1));
 $("nextBtn").addEventListener("click", () => step(1));
 $("playBtn").addEventListener("click", togglePlay);
 $("clearBtn").addEventListener("click", clearAll);
 $("zoomIn").addEventListener("click", () => zoomBy(1.2));
 $("zoomOut").addEventListener("click", () => zoomBy(1 / 1.2));
-$("zoomFit").addEventListener("click", () => cam.full && animateTo(overview()));
+$("zoomFit").addEventListener("click", () => { cr.camMoved = false; if (cam.full) animateTo(overview()); });
 function storedLayout() { try { return localStorage.getItem("vw-layout"); } catch { return null; } }
 let elkReady = null;
 async function useLayout(name) {
@@ -1155,6 +1503,7 @@ $("themeBtn").addEventListener("click", () => {
 });
 addEventListener("resize", () => { if (cam.cur) setView(cam.cur); });
 addEventListener("keydown", (e) => {
+  if (createKey(e)) return;
   if (e.target.closest("select, input, textarea")) return;
   if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); step(1); }
   else if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); step(-1); }
@@ -1166,6 +1515,1947 @@ addEventListener("keydown", (e) => {
   else if (e.key === "-") zoomBy(0.8);
 });
 
+/* ---------------- Edit mode: discovery, pains, and the diagrams with their steps ---------------- */
+
+// A sketch is a small JSON model, saved in the browser. It is turned into a Markdown file in the viewer's own
+// format (sketchMarkdown), and that file is what the canvas renders, exports and presents.
+// Two kinds of board:
+//   native: drawn here. The As-is board numbers its steps Ⓐ Ⓑ Ⓒ, the Proposed architecture board ① ② ③.
+//   file:   a diagram and its step table taken from an opened Markdown file. The file itself is never changed:
+//           the sketch keeps a copy of its text, and an export puts the edited diagram and table back in their places.
+const AS_IS_KEYS = "ⒶⒷⒸⒹⒺⒻⒼⒽⒾⒿⓀⓁⓂⓃⓄⓅⓆⓇⓈⓉⓊⓋⓌⓍⓎⓏ";
+const BOARDS = {
+  asis: { label: "As-is process", heading: "As-is process", steps: "As-is steps", keys: AS_IS_KEYS },
+  tobe: { label: "Proposed architecture", heading: "Proposed architecture", steps: "Proposed steps", keys: CIRCLED.slice(1) },
+};
+const CR_SHAPES = { box: ['["', '"]'], person: ['(["', '"])'], store: ['[("', '")]'], decision: ['{"', '"}'], gate: ['{{"', '"}}'] };
+const SHAPE_NAMES = { box: "Box", person: "Person", store: "System of record", decision: "Decision", gate: "Human gate 🔒" };
+// Sketches before v3 stored the owner of a proposed step as one of these keys; it is free text now (migrateOwners).
+const OLD_OWNERS = { Bot: "Grok Bot", Build: "Grok Build (Cursor)", Human: "Human in the loop" };
+// What a solutions architect's technical discovery covers. [field, label, placeholder, multi-line]
+const DISCOVERY = [
+  { id: "usecase", title: "Use case", fields: [
+    ["name", "Use case", "e.g. Security questionnaires for prospects"],
+    ["lob", "Line of business and team", "e.g. Sales and Security"],
+    ["sponsor", "Business owner", "who owns the outcome"],
+    ["users", "Who does the work today", "roles, and how many people"],
+    ["trigger", "What starts it", "email, ticket, chat, an event"],
+    ["why", "Why now", "what changed, and what happens if nothing changes", true]] },
+  { id: "process", title: "Current process", fields: [
+    ["summary", "How it runs today", "a short summary. Draw the details on the As-is board.", true],
+    ["systems", "Systems and tools", "spreadsheets, email, ITSM, shared drives, CRM"],
+    ["handoffs", "Handoffs and waits", "where it waits, and on whom", true],
+    ["exceptions", "Exceptions", "what goes wrong, and who handles it", true]] },
+  { id: "pains", title: "Pains", pains: true, fields: [
+    ["top", "The pain that hurts most", "P1, P2 … from the Pains tab"],
+    ["impact", "Business impact", "customers, revenue, risk, workload", true]] },
+  { id: "quant", title: "Quantification", fields: [
+    ["volume", "Volume", "requests per week or month"],
+    ["cycle", "Cycle time today", "start to done"],
+    ["touch", "Hands-on time per item", "hours of real work, as opposed to waiting"],
+    ["people", "People involved per item", "how many handoffs"],
+    ["rework", "Rework and exception rate", "e.g. 1 in 3 requests needs a re-ask"],
+    ["cost", "Cost of the pain", "hours × rate, delayed revenue, risk"]] },
+  { id: "blockers", title: "Blockers and risks", fields: [
+    ["security", "Security and compliance", "what agents may touch, data classes, audit needs", true],
+    ["data", "Data access", "where the data lives, who owns it. The pilot uses public or synthesized data."],
+    ["integrations", "Integrations", "APIs, ITSM, SSO, chat"],
+    ["change", "People and change", "adoption, training, workload"],
+    ["other", "Other blockers", "budget, timing, dependencies", true]] },
+  { id: "success", title: "Definition of success", fields: [
+    ["kpi", "Success metric", "e.g. cycle time from request to approval"],
+    ["baseline", "Baseline", "today's value"],
+    ["target", "Target", "the value, and by when"],
+    ["done", "What done looks like", "in their words", true],
+    ["guardrails", "Must not get worse", "quality, risk, compliance"]] },
+  { id: "decision", title: "Decision process", fields: [
+    ["buyer", "Economic buyer", "who signs off the budget"],
+    ["tech", "Technical decision maker", "who approves the architecture"],
+    ["champion", "Champion", "who pushes it internally"],
+    ["approvers", "Other approvers", "Security, Legal, Procurement, IT"],
+    ["criteria", "Decision criteria", "what they will judge it on", true],
+    ["timeline", "Timeline and next meeting", "when they decide"]] },
+  { id: "rollout", title: "Rollout plan", fields: [
+    ["pilot", "Pilot scope", "one team, one process, synthesized data"],
+    ["duration", "Pilot length", "e.g. 2 weeks"],
+    ["measure", "How the pilot is measured", "the success metric, read from the request log"],
+    ["gonogo", "Go / no-go", "the date, and who decides"],
+    ["phases", "After the pilot", "next teams, more integrations", true],
+    ["owner", "Owner and enablement", "who runs it day to day, and how people are trained"]] },
+  { id: "next", title: "Open questions and next steps", fields: [
+    ["questions", "Open questions", "what we still need to find out", true],
+    ["steps", "Next steps", "who does what, by when", true]] },
+];
+
+const cr = { on: false, sk: null, board: "asis", tab: "discovery", open: { usecase: true }, sel: null,
+  connect: null, linking: -1, active: -1, undo: [], redo: [], lastKey: "", lastAt: 0, saveT: 0, drawT: 0, relayout: false,
+  idMap: new Map(), rev: new Map(), autoDir: {}, dirSeq: 0, camMoved: false, shape: "box" };
+state.creating = false;
+const SK_PREFIX = "vw-sketch:", SK_ACTIVE = "vw-sketch-active", SK_ON = "vw-create", SK_UI = "vw-create-ui";
+const lsGet = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); return true; } catch { return false; } };
+const lsDel = (k) => { try { localStorage.removeItem(k); } catch { /* storage blocked */ } };
+const uid = (p) => p + Date.now().toString(36).slice(-4) + Math.random().toString(36).slice(2, 6);
+const board = () => cr.sk.boards[cr.board];
+const isFile = (b) => b.kind === "file";
+// FNV-1a: a fingerprint of a text, to notice when a file changed since it was exported.
+function fnv(text) {
+  let h = 0x811c9dc5;
+  const t = String(text).replace(/\r\n/g, "\n").trimEnd();
+  for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h.toString(16).padStart(8, "0");
+}
+function stepKey(key, i, sk = cr.sk) {
+  const b = sk?.boards[key];
+  if (b && isFile(b)) return b.steps[i]?.key || "";
+  const k = BOARDS[key]?.keys || BOARDS.tobe.keys;
+  return i < k.length ? k[i] : (key === "asis" ? "A" : "") + (i + 1);
+}
+function boardLabel(sk, key) { const b = sk.boards[key]; return isFile(b) ? b.heading || "Diagram" : BOARDS[key]?.label || key; }
+
+function newBoard(kind = "native") { return { kind, dir: "AUTO", groups: [], nodes: [], edges: [], steps: [], pos: {} }; }
+function newSketch() {
+  const now = Date.now();
+  // log is added when the sketch is opened (ensureLog).
+  return { v: 3, id: uid("s"), title: "", created: now, updated: now, notes: "", discovery: {}, pains: [],
+    slots: ["asis", "tobe"], boards: { asis: newBoard(), tobe: newBoard() }, source: null };
+}
+// Accepts anything (storage, an imported file) and returns a complete, consistent sketch, or null.
+function normalizeSketch(o) {
+  if (!o || typeof o !== "object" || !o.boards || typeof o.boards !== "object") return null;
+  const str = (v) => (v == null ? "" : String(v));
+  const strOrNull = (v) => (v == null ? null : String(v));
+  const sk = newSketch();
+  sk.id = str(o.id) || sk.id; sk.title = str(o.title); sk.notes = str(o.notes); sk.v = +o.v || 2;
+  sk.created = +o.created || sk.created; sk.updated = +o.updated || sk.updated;
+  for (const [k, v] of Object.entries(o.discovery || {})) if (typeof v === "string") sk.discovery[k] = v;
+  sk.pains = (Array.isArray(o.pains) ? o.pains : []).filter((p) => p && p.id)
+    .map((p) => ({ id: str(p.id), text: str(p.text), cost: str(p.cost), measure: str(p.measure) }));
+  if (o.source && typeof o.source.text === "string") sk.source = { name: str(o.source.name) || "file.md", text: o.source.text, title: str(o.source.title), hash: str(o.source.hash) || fnv(o.source.text) };
+  const slots = Array.isArray(o.slots) && o.slots.length ? o.slots.map(str).filter((k) => o.boards[k]) : ["asis", "tobe"];
+  const pids = new Set(sk.pains.map((p) => p.id));
+  sk.boards = {}; sk.slots = [];
+  for (const key of slots) {
+    const src = o.boards[key] || {}, file = src.kind === "file" && !!sk.source, b = newBoard(file ? "file" : "native");
+    b.dir = ["LR", "RL", "TD", "TB", "BT"].includes(src.dir) ? src.dir : file ? "TD" : "AUTO";
+    b.groups = (src.groups || []).filter((g) => g && g.id).map((g) => ({ id: str(g.id), label: str(g.label), parent: g.parent ? str(g.parent) : null,
+      mid: strOrNull(g.mid), raw: strOrNull(g.raw), dir: g.dir ? str(g.dir) : "" }));
+    const gids = new Set(b.groups.map((g) => g.id));
+    b.groups.forEach((g) => { if (!gids.has(g.parent) || g.parent === g.id) g.parent = null; });
+    b.nodes = (src.nodes || []).filter((n) => n && n.id).map((n) => ({ id: str(n.id), label: str(n.label), sub: str(n.sub),
+      shape: CR_SHAPES[n.shape] ? n.shape : "box", group: gids.has(n.group) ? n.group : null, mid: strOrNull(n.mid), raw: strOrNull(n.raw),
+      keys0: Array.isArray(n.keys0) ? n.keys0.map(str) : null, br: Array.isArray(n.br) && n.br.length === 2 ? n.br.map(str) : null, cls: str(n.cls),
+      g0: n.g0 === undefined ? undefined : n.g0 == null ? null : str(n.g0) }));
+    const nids = new Set(b.nodes.map((n) => n.id)), ends = new Set([...nids, ...gids]);
+    for (const [id, p] of Object.entries(src.pos || {})) if (nids.has(id) && Number.isFinite(p?.x) && Number.isFinite(p?.y)) b.pos[id] = { x: p.x, y: p.y };
+    b.edges = (src.edges || []).filter((e) => e && ends.has(e.from) && ends.has(e.to))
+      .map((e) => ({ id: str(e.id) || uid("e"), from: e.from, to: e.to, label: str(e.label), dashed: !!e.dashed, arrow: strOrNull(e.arrow), labelRaw: strOrNull(e.labelRaw),
+        ...("a0" in e ? { a0: strOrNull(e.a0), l0: strOrNull(e.l0) } : {}) }));
+    if (file) {
+      b.diagram = Math.max(0, +src.diagram || 0); b.table = Number.isInteger(src.table) ? src.table : -1;
+      b.heading = str(src.heading); b.tableHeading = str(src.tableHeading);
+      b.header = (src.header || []).map(str); b.keyCol = +src.keyCol || 0; b.nameCol = Number.isInteger(src.nameCol) ? src.nameCol : (b.keyCol === 0 ? 1 : 0);
+      b.headerRaw = strOrNull(src.headerRaw); b.sepRaw = strOrNull(src.sepRaw); b.genHash = str(src.genHash);
+      b.pre = (src.pre || []).map(str); b.extra = (src.extra || []).map(str); b.keyword = str(src.keyword) || "flowchart";
+      b.dir0 = str(src.dir0) || b.dir;
+      b.lines = Array.isArray(src.lines) ? src.lines.filter((l) => l && typeof l.text === "string").map((l) => ({ t: str(l.t), text: l.text, gid: l.gid == null ? null : str(l.gid),
+        defs: (l.defs || []).map((d) => ({ id: str(d.id), raw: str(d.raw), cls: str(d.cls) })), edges: (l.edges || []).map(str) })) : null;
+      b.steps = (src.steps || []).filter(Boolean).map((t) => {
+        const cells = b.header.map((h, i) => str((t.cells || [])[i]));
+        return { id: str(t.id) || uid("t"), cells, key: stripMd(cells[b.keyCol] || ""), rowRaw: strOrNull(t.rowRaw),
+          nodes: (t.nodes || []).filter((id) => nids.has(id)), over: (t.over || []).filter((id) => ends.has(id)), pains: (t.pains || []).map(str).filter((id) => pids.has(id)) };
+      });
+    } else {
+      b.steps = (src.steps || []).filter(Boolean).map((t) => ({ id: str(t.id) || uid("t"), name: str(t.name), who: str(t.who), tool: str(t.tool),
+        wait: str(t.wait), what: str(t.what), owner: str(t.owner),
+        pains: (t.pains || []).map(str).filter((id) => pids.has(id)), nodes: (t.nodes || []).filter((id) => nids.has(id)) }));
+    }
+    sk.boards[key] = b; sk.slots.push(key);
+  }
+  if (!sk.slots.length) return null;
+  const log = validLog(o.log);
+  if (log) sk.log = log;
+  return sk;
+}
+
+/* --- Reading a Mermaid flowchart into a board (for editing a copy of a file) --- */
+
+const MM_OPEN = [["(((", ")))"], ["([", "])"], ["[[", "]]"], ["[(", ")]"], ["((", "))"], ["{{", "}}"], ["[/", "/]"], ["[\\", "\\]"], ["[", "]"], ["(", ")"], ["{", "}"], [">", "]"]];
+const SHAPE_OF = { "[": "box", "([": "person", "[(": "store", "{": "decision", "{{": "gate" };
+function decodeMermaidText(t) {
+  let s = String(t || "").trim();
+  if (s.length > 1 && s.startsWith("`") && s.endsWith("`")) s = s.slice(1, -1);
+  s = s.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "");
+  s = s.replace(/#(\d+);/g, (m, n) => String.fromCharCode(+n)).replace(/#quot;/g, '"').replace(/#amp;/g, "&").replace(/#lt;/g, "<").replace(/#gt;/g, ">");
+  s = s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&");
+  return s.split("\n").map((x) => x.trim()).filter((x, i, a) => x || i < a.length - 1).join("\n");
+}
+// One statement: node lists joined by links. Returns null when the line is not a statement this reader knows.
+function parseStatement(s) {
+  let i = 0;
+  const ws = () => { while (i < s.length && /\s/.test(s[i])) i++; };
+  const nodeRef = () => {
+    ws();
+    const m = s.slice(i).match(/^[\p{L}\p{N}_]+/u);
+    if (!m) return null;
+    const ref = { id: m[0] };
+    i += m[0].length;
+    for (const [open, close] of MM_OPEN) {
+      if (!s.startsWith(open, i)) continue;
+      // ">" opens an asymmetric shape only right after the id
+      let j = i + open.length, text, end;
+      if (s[j] === '"') {
+        const q = s.indexOf('"', j + 1);
+        if (q < 0) return null;
+        text = s.slice(j + 1, q);
+        end = s.indexOf(close, q + 1);
+        if (end < 0 || s.slice(q + 1, end).trim()) return null;
+        ref.quoted = true;
+      } else {
+        end = s.indexOf(close, j);
+        if (end < 0) return null;
+        text = s.slice(j, end);
+      }
+      ref.open = open; ref.close = close; ref.text = text;
+      ref.raw = s.slice(i, end + close.length);
+      i = end + close.length;
+      break;
+    }
+    const c = s.slice(i).match(/^:::[\w-]+/);
+    if (c) { ref.cls = c[0]; i += c[0].length; }
+    return ref;
+  };
+  const nodeList = () => {
+    const list = [];
+    for (;;) {
+      const r = nodeRef();
+      if (!r) return list.length ? null : null;
+      list.push(r);
+      ws();
+      if (s[i] === "&") { i++; continue; }
+      return list;
+    }
+  };
+  const link = () => {
+    ws();
+    const rest = s.slice(i);
+    // "-- text -->", "-. text .->", "== text ==>"
+    const lf = rest.match(/^(--|-\.|==)\s+(.+?)\s+(-{2,}>|-{3,}|\.-+>|\.-+|={2,}>|={3,})(?=\s|[\p{L}\p{N}_]|$)/u);
+    if (lf) {
+      i += lf[0].length;
+      const head = lf[3].endsWith(">");
+      const arrow = lf[1] === "-." ? (head ? "-.->" : "-.-") : lf[1] === "==" ? (head ? "==>" : "===") : (head ? "-->" : "---");
+      return { arrow, labelRaw: lf[2].trim() };
+    }
+    const m = rest.match(/^(<?(?:-\.+-|-{2,}|={2,})(?:>|o(?=\s)|x(?=\s))?|~{3,})/);
+    if (!m) return null;
+    i += m[0].length;
+    const l = { arrow: m[0], labelRaw: null };
+    ws();
+    if (s[i] === "|") {
+      const q = s[i + 1] === '"' ? s.indexOf('"|', i + 2) : -1;
+      const end = q >= 0 ? q + 1 : s.indexOf("|", i + 1);
+      if (end < 0) return null;
+      l.labelRaw = s.slice(i + 1, end);
+      i = end + 1;
+    }
+    return l;
+  };
+  const lists = [nodeList()];
+  if (!lists[0]) return null;
+  const links = [];
+  for (;;) {
+    ws();
+    if (i >= s.length || s[i] === ";") break;
+    const l = link();
+    if (!l) return null;
+    const next = nodeList();
+    if (!next) return null;
+    links.push(l); lists.push(next);
+  }
+  ws();
+  if (s[i] === ";") i++;
+  ws();
+  return i >= s.length ? { lists, links } : null;
+}
+function parseFlowchart(src) {
+  const lines = src.split(/\r?\n/);
+  // lines: the source, line by line, with what each line defines. An edited board is written back line by line,
+  // so everything that was not changed keeps its exact text and place.
+  const out = { pre: [], keyword: "flowchart", dir: "TD", groups: [], nodes: [], edges: [], extra: [], overrides: new Map(), pins: new Map(), kept: 0, lines: [] };
+  const nodeByMid = new Map(), groupByMid = new Map(), stack = [];
+  let header = false;
+  const touchNode = (r) => {
+    let n = nodeByMid.get(r.id);
+    if (!n) { n = { id: uid("n"), mid: r.id, raw: "", label: r.id, sub: "", shape: "box", group: stack.at(-1)?.id || null, keys0: null, br: null, cls: "" }; nodeByMid.set(r.id, n); out.nodes.push(n); }
+    if (r.raw !== undefined) {
+      n.raw = r.raw;
+      const [label, ...sub] = decodeMermaidText(r.text).split("\n");
+      n.label = label || ""; n.sub = sub.join("\n");
+      n.shape = SHAPE_OF[r.open] || "box"; n.br = SHAPE_OF[r.open] ? null : [r.open, r.close];
+    }
+    if (r.cls) n.cls = r.cls;
+    return n;
+  };
+  for (const line of lines) {
+    const t = line.trim();
+    const keep = () => out.lines.push({ t: "keep", text: line });
+    if (!header) {
+      const h = t.match(/^(flowchart|graph)\b\s*(LR|RL|TD|TB|BT)?\s*;?\s*$/i);
+      if (h) { header = true; out.keyword = h[1]; out.dir = (h[2] || "TD").toUpperCase(); out.lines.push({ t: "header", text: line }); }
+      else { if (t) out.pre.push(line); keep(); }
+      continue;
+    }
+    if (!t) { keep(); continue; }
+    if (t.startsWith("%%")) {
+      const st = t.match(/^%%\s*@step\s+(\S+)\s*:\s*(.+)$/), ps = t.match(/^%%\s*@pos\s+(\S+?)\s*:\s*(-?[\d.]+)[\s,]+(-?[\d.]+)\s*$/);
+      // @step, @pos and the loose-keys note are written fresh from the model, so their old lines are dropped.
+      if (st) out.overrides.set(st[1], [...(out.overrides.get(st[1]) || []), ...st[2].split(/[,\s]+/).filter(Boolean)]);
+      else if (ps) out.pins.set(ps[1], { x: +ps[2], y: +ps[3] });
+      else if (!/^%%\s*Steps without a box yet/.test(t)) { out.extra.push(t); keep(); }
+      continue;
+    }
+    const sg = t.match(/^subgraph\s+(.+)$/);
+    if (sg) {
+      const rest = sg[1].trim(), m = rest.match(/^([\p{L}\p{N}_]+)\s*\[(.*)\]\s*$/u);
+      const mid = m ? m[1] : rest, title = m ? m[2].replace(/^"|"$/g, "") : rest;
+      const g = { id: uid("g"), mid, raw: rest, label: decodeMermaidText(title).replace(/\n/g, " "), parent: stack.at(-1)?.id || null, dir: "" };
+      out.groups.push(g); groupByMid.set(mid, g); stack.push(g);
+      out.lines.push({ t: "group", text: line, gid: g.id });
+      continue;
+    }
+    if (/^end\s*;?$/.test(t)) { out.lines.push({ t: "end", text: line, gid: stack.pop()?.id || null }); continue; }
+    const dm = t.match(/^direction\s+(LR|RL|TD|TB|BT)\s*$/i);
+    if (dm && stack.length) { stack.at(-1).dir = dm[1].toUpperCase(); keep(); continue; }
+    if (/^(classDef|class|style|linkStyle|click)\b/.test(t)) { out.extra.push(t); keep(); continue; }
+    const st = parseStatement(t);
+    if (!st) { out.extra.push(t); out.kept++; keep(); continue; }
+    const rec = { t: "stmt", text: line, defs: [], edges: [] };
+    out.lines.push(rec);
+    const refs = st.lists.map((list) => list.map((r) => {
+      if (groupByMid.has(r.id) && r.raw === undefined && !nodeByMid.has(r.id)) return { group: groupByMid.get(r.id) };
+      const node = touchNode(r);
+      if (r.raw !== undefined) rec.defs.push({ id: node.id, raw: r.raw, cls: r.cls || "" });
+      return { node };
+    }));
+    st.links.forEach((l, k) => {
+      for (const a of refs[k]) for (const z of refs[k + 1]) {
+        const from = (a.node || a.group).id, to = (z.node || z.group).id;
+        const label = l.labelRaw == null ? "" : decodeMermaidText(l.labelRaw.replace(/^"|"$/g, "")).replace(/\n/g, " ");
+        const e = { id: uid("e"), from, to, label, dashed: l.arrow.includes("."), arrow: l.arrow, labelRaw: l.labelRaw, a0: l.arrow, l0: l.labelRaw };
+        out.edges.push(e); rec.edges.push(e.id);
+      }
+    });
+  }
+  return { ...out, nodeByMid, groupByMid, ok: header };
+}
+
+// A Markdown file as a sketch: every diagram that has a step table becomes a board.
+function sketchFromDoc(text, name) {
+  const doc = parseMarkdown(text), sk = newSketch();
+  const usable = doc.diagrams.map((d, i) => [i, chooseSources(doc, i)]).filter(([, p]) => p);
+  if (!usable.length) return { error: "This file has no diagram with a matching step table, so there is nothing to edit." };
+  sk.title = doc.title || name.replace(/\.md$/i, "");
+  sk.source = { name, text, title: doc.title, hash: fnv(text) };
+  sk.boards = {}; sk.slots = [];
+  const kept = [];
+  for (const [di, pick] of usable) {
+    const d = doc.diagrams[di], t = doc.tables[pick.ti], f = parseFlowchart(d.src);
+    if (!f.ok) { kept.push(d.heading || `Diagram ${di + 1}`); continue; }
+    const b = newBoard("file");
+    f.nodes.forEach((n) => { n.g0 = n.group; });
+    Object.assign(b, { dir: f.dir, dir0: f.dir, lines: f.lines, keyword: f.keyword, pre: f.pre, extra: f.extra, groups: f.groups, nodes: f.nodes, edges: f.edges,
+      diagram: di, table: pick.ti, heading: d.heading, tableHeading: t.heading, header: t.header, keyCol: pick.col,
+      nameCol: pick.col === 0 ? 1 : 0, headerRaw: t.headerRaw, sepRaw: t.sepRaw });
+    // Steps: the table rows. A step is linked to the boxes whose label holds its key, and to its @step overrides.
+    const keyOf = (cells) => stripMd(cells[pick.col] || "");
+    const allKeys = [...new Set(t.rows.map(keyOf).filter(Boolean))];
+    b.steps = t.rows.map((cells, r) => {
+      const key = keyOf(cells);
+      const nodes = f.nodes.filter((n) => hasKey(`${n.label}\n${n.sub}`, key)).map((n) => n.id);
+      const over = (f.overrides.get(key) || []).map((mid) => f.nodeByMid.get(mid)?.id || f.groupByMid.get(mid)?.id).filter(Boolean);
+      return { id: uid("t"), cells: t.header.map((h, i) => cells[i] || ""), key, rowRaw: t.raws[r], nodes, over, pains: [] };
+    });
+    // The keys are shown as step tokens, so the box names in the editor go without them.
+    const strip = (s) => allKeys.reduce((acc, k) => acc.replace(wordRe(k, "gu"), "$1"), s).replace(/[ \t]{2,}/g, " ").trim();
+    for (const n of f.nodes) {
+      n.keys0 = allKeys.filter((k) => hasKey(`${n.label}\n${n.sub}`, k)).sort();
+      n.label = strip(n.label); n.sub = n.sub.split("\n").map(strip).join("\n").trim();
+    }
+    for (const [mid, p] of f.pins) { const n = f.nodeByMid.get(mid); if (n) b.pos[n.id] = p; }
+    const key = `d${di}`;
+    sk.boards[key] = b; sk.slots.push(key);
+    // Fingerprint of the board as read. While it still matches, the export keeps the file's own diagram text.
+    b.genHash = fnv(boardMermaid(sk, key).src);
+  }
+  if (!sk.slots.length) return { error: "The diagrams in this file could not be read for editing." };
+  return { sketch: sk, skipped: kept };
+}
+
+/* --- Writing Markdown in the viewer's format --- */
+
+const MERMAID_WORDS = /^(END|GRAPH|SUBGRAPH|FLOWCHART|STYLE|CLASS|CLASSDEF|CLICK|LINKSTYLE|DIRECTION|DEFAULT|CALL|HREF)$/;
+function slugId(text, used, fallback) {
+  let s = (text || "").normalize("NFKD").replace(/[^A-Za-z0-9\s_]/g, " ").trim().toUpperCase().replace(/[\s_]+/g, "_").slice(0, 24).replace(/_+$/, "");
+  if (!s) s = fallback;
+  if (/^\d/.test(s) || MERMAID_WORDS.test(s)) s = fallback[0] + "_" + s;
+  let id = s;
+  for (let n = 2; used.has(id); n++) id = `${s}_${n}`;
+  used.add(id);
+  return id;
+}
+const sameList = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
+function boardMermaid(sk, key) {
+  const b = sk.boards[key], file = isFile(b), used = new Set(), slug = new Map();
+  // Ids from the file stay as they are, so comments and styles that name them keep working.
+  for (const x of [...b.groups, ...b.nodes]) if (x.mid) { used.add(x.mid); slug.set(x.id, x.mid); }
+  b.groups.forEach((g) => { if (!slug.has(g.id)) slug.set(g.id, slugId(g.label, used, "GROUP")); });
+  b.nodes.forEach((n) => { if (!slug.has(n.id)) slug.set(n.id, slugId(n.label, used, "BOX")); });
+  const keysOf = new Map(), painsOf = new Map();
+  b.steps.forEach((t, i) => t.nodes.forEach((id) => {
+    if (!keysOf.has(id)) keysOf.set(id, []);
+    const k = stepKey(key, i, sk);
+    if (k && !keysOf.get(id).includes(k)) keysOf.get(id).push(k);
+    if (key === "asis" && !file) { if (!painsOf.has(id)) painsOf.set(id, new Set()); t.pains.forEach((p) => painsOf.get(id).add(p)); }
+  }));
+  const label = (n) => {
+    const keys = keysOf.get(n.id) || [];
+    let first = n.label.trim() || (file ? "" : "Box");
+    if (!file && n.shape === "gate" && !first.includes("🔒")) first = "🔒 " + first;
+    const lines = [(keys.length ? keys.join(" ") + " " : "") + first];
+    for (const l of n.sub.split("\n")) if (l.trim()) lines.push(l.trim());
+    const pains = [...(painsOf.get(n.id) || [])];
+    if (pains.length) lines.push("⚠ " + pains.join(" "));
+    return lines.map(mmText).join("<br/>");
+  };
+  const def = (n) => {
+    // An untouched box from a file is written exactly as it was, as long as its step keys are unchanged.
+    if (file && n.raw != null && n.keys0 && sameList([...(keysOf.get(n.id) || [])].sort(), n.keys0)) return `${slug.get(n.id)}${n.raw}${n.cls}`;
+    const [open, close] = n.br ? [n.br[0] + '"', '"' + n.br[1]] : CR_SHAPES[n.shape];
+    return `${slug.get(n.id)}${open}${label(n)}${close}${n.cls || ""}`;
+  };
+  const dir = b.dir === "AUTO" ? cr.autoDir[key] || "LR" : b.dir;
+  if (file && b.lines) return fileMermaid(sk, key, { slug, keysOf, def, dir });
+  const out = [...(file ? b.pre : []), `${file ? b.keyword : "flowchart"} ${dir}`];
+  const overview = [];
+  const emitGroup = (g, ind) => {
+    const inside = b.nodes.filter((n) => n.group === g.id), kids = b.groups.filter((c) => c.parent === g.id);
+    if (!inside.length && !kids.length && !(file && g.raw != null)) return;
+    const title = (g.label.trim() || "Group").replace(/\s\|\s/g, " / ");
+    out.push(`${ind}subgraph ${g.raw != null ? g.raw : `${slug.get(g.id)}["${mmText(title)}"]`}`);
+    if (g.dir) out.push(`${ind}    direction ${g.dir}`);
+    kids.forEach((c) => emitGroup(c, ind + "    "));
+    inside.forEach((n) => out.push(ind + "    " + def(n)));
+    out.push(ind + "end");
+    if (!file && !g.parent) {
+      let role = inside.map((n) => n.label.trim() || "Box").join(", ").replace(/\|/g, "/");
+      if (role.length > 70) role = role.slice(0, 68).replace(/[,\s]+\S*$/, "") + " …";
+      overview.push(`    %% @overview ${slug.get(g.id)}: ${title} | ${role}`);
+    }
+  };
+  b.groups.filter((g) => !g.parent).forEach((g) => emitGroup(g, "    "));
+  b.nodes.filter((n) => !n.group).forEach((n) => out.push("    " + def(n)));
+  for (const e of b.edges) {
+    const a = slug.get(e.from), z = slug.get(e.to);
+    if (!a || !z) continue;
+    if (file || e.arrow) {
+      const arrow = e.arrow || (e.dashed ? "-.->" : "-->");
+      const lab = e.labelRaw != null ? e.labelRaw : e.label.trim() ? `"${mmText(e.label.trim())}"` : "";
+      out.push(`    ${a} ${arrow}${lab ? `|${lab}|` : ""} ${z}`);
+    } else {
+      const l = mmText(e.label.trim());
+      out.push("    " + (e.dashed ? (l ? `${a} -.->|"${l}"| ${z}` : `${a} -.-> ${z}`) : (l ? `${a} -- "${l}" --> ${z}` : `${a} --> ${z}`)));
+    }
+  }
+  if (file) out.push(...b.extra.map((l) => "    " + l));
+  out.push(...overview);
+  if (file) b.steps.forEach((t) => { const ids = t.over.map((id) => slug.get(id)).filter(Boolean); if (ids.length && t.key) out.push(`    %% @step ${t.key}: ${ids.join(", ")}`); });
+  for (const n of b.nodes) if (b.pos[n.id]) out.push(`    %% @pos ${slug.get(n.id)}: ${Math.round(b.pos[n.id].x)} ${Math.round(b.pos[n.id].y)}`);
+  // Every step key appears in the diagram, so the step table always matches it, even before a step has boxes.
+  const body = out.join("\n");
+  const loose = [...new Set(b.steps.map((t, i) => stepKey(key, i, sk)).filter((k) => k && !hasKey(body, k)))];
+  if (loose.length) out.push(`    %% Steps without a box yet: ${loose.join(" ")}`);
+  return { src: out.join("\n"), map: new Map([...slug].map(([id, sl]) => [sl, id])) };
+}
+
+// A file board, written back over the file's own lines: a line keeps its exact text while nothing it defines
+// has changed. Changed lines are rewritten in place. New boxes go into their group's block, new arrows at the end.
+function fileMermaid(sk, key, { slug, keysOf, def, dir }) {
+  const b = sk.boards[key];
+  const nodes = new Map(b.nodes.map((n) => [n.id, n])), groups = new Map(b.groups.map((g) => [g.id, g])), edges = new Map(b.edges.map((e) => [e.id, e]));
+  const doneN = new Set(), doneE = new Set(), doneG = new Set(), out = [], stack = [];
+  const indent = (t) => t.match(/^\s*/)[0];
+  const sameNode = (n, d) => !!n && n.raw != null && n.raw === d.raw && (n.cls || "") === (d.cls || "") && n.group === n.g0 && !!n.keys0 && sameList([...(keysOf.get(n.id) || [])].sort(), n.keys0);
+  const sameEdge = (e) => !!e && e.arrow === e.a0 && e.labelRaw === e.l0;
+  const edgeLine = (e) => {
+    const arrow = e.arrow || (e.dashed ? "-.->" : "-->");
+    const lab = e.labelRaw != null ? e.labelRaw : e.label.trim() ? `"${mmText(e.label.trim())}"` : "";
+    return `${slug.get(e.from)} ${arrow}${lab ? `|${lab}|` : ""} ${slug.get(e.to)}`;
+  };
+  // Boxes that still belong where the file defines them are written at that line.
+  const inPlace = new Set();
+  for (const l of b.lines) if (l.t === "stmt") for (const d of l.defs) { const n = nodes.get(d.id); if (n && n.group === n.g0) inPlace.add(n.id); }
+  const emitNew = (g, ind) => {
+    doneG.add(g.id);
+    out.push(`${ind}subgraph ${slug.get(g.id)}["${mmText((g.label.trim() || "Group").replace(/\s\|\s/g, " / "))}"]`);
+    if (g.dir) out.push(`${ind}    direction ${g.dir}`);
+    b.groups.filter((c) => c.parent === g.id && !doneG.has(c.id)).forEach((c) => emitNew(c, ind + "    "));
+    for (const n of b.nodes) if (n.group === g.id && !doneN.has(n.id)) { out.push(`${ind}    ${def(n)}`); doneN.add(n.id); }
+    out.push(`${ind}end`);
+  };
+  for (const l of b.lines) {
+    if (l.t === "keep") out.push(l.text);
+    else if (l.t === "header") out.push(dir === b.dir0 ? l.text : `${indent(l.text)}${b.keyword} ${dir}`);
+    else if (l.t === "group") {
+      const g = groups.get(l.gid);
+      stack.push(g ? g.id : null);
+      if (!g) continue;
+      doneG.add(g.id);
+      out.push(g.raw != null ? l.text : `${indent(l.text)}subgraph ${slug.get(g.id)}["${mmText((g.label.trim() || "Group").replace(/\s\|\s/g, " / "))}"]`);
+    } else if (l.t === "end") {
+      const gid = stack.pop();
+      if (!gid) continue;
+      const ind = indent(l.text) + "    ";
+      b.groups.filter((c) => c.parent === gid && !doneG.has(c.id) && !b.lines.some((x) => x.t === "group" && x.gid === c.id)).forEach((c) => emitNew(c, ind));
+      for (const n of b.nodes) if (n.group === gid && !doneN.has(n.id) && !inPlace.has(n.id)) { out.push(ind + def(n)); doneN.add(n.id); }
+      out.push(l.text);
+    } else if (l.t === "stmt") {
+      const defs = l.defs.map((d) => [nodes.get(d.id), d]), es = l.edges.map((id) => edges.get(id));
+      if (defs.every(([n, d]) => sameNode(n, d)) && es.every(sameEdge)) {
+        out.push(l.text);
+        defs.forEach(([n]) => doneN.add(n.id)); es.forEach((e) => doneE.add(e.id));
+        continue;
+      }
+      const ind = indent(l.text);
+      for (const [n] of defs) if (n && inPlace.has(n.id) && !doneN.has(n.id)) { out.push(ind + def(n)); doneN.add(n.id); }
+      for (const e of es) if (e && !doneE.has(e.id) && slug.get(e.from) && slug.get(e.to)) { out.push(ind + edgeLine(e)); doneE.add(e.id); }
+    }
+  }
+  b.groups.filter((g) => !doneG.has(g.id) && (!g.parent || !groups.has(g.parent))).forEach((g) => emitNew(g, "    "));
+  // Boxes outside any group that have no line of their own yet (new ones, or ones moved out of a group).
+  for (const n of b.nodes) if (!doneN.has(n.id) && (!n.group || !groups.has(n.group))) { out.push("    " + def(n)); doneN.add(n.id); }
+  for (const e of b.edges) if (!doneE.has(e.id) && slug.get(e.from) && slug.get(e.to)) out.push("    " + edgeLine(e));
+  b.steps.forEach((t) => { const ids = t.over.map((id) => slug.get(id)).filter(Boolean); if (ids.length && t.key) out.push(`    %% @step ${t.key}: ${ids.join(", ")}`); });
+  for (const n of b.nodes) if (b.pos[n.id]) out.push(`    %% @pos ${slug.get(n.id)}: ${Math.round(b.pos[n.id].x)} ${Math.round(b.pos[n.id].y)}`);
+  const body = out.join("\n");
+  const loose = [...new Set(b.steps.map((t) => t.key).filter((k) => k && !hasKey(body, k)))];
+  if (loose.length) out.push(`    %% Steps without a box yet: ${loose.join(" ")}`);
+  return { src: out.join("\n"), map: new Map([...slug].map(([id, sl]) => [sl, id])) };
+}
+
+const cellText = (v) => String(v || "").replace(/\r?\n+/g, " ").replace(/\|/g, "\\|").trim();
+function fileTable(sk, b) {
+  const row = (cells) => `| ${cells.map(cellText).join(" | ")} |`;
+  const lines = [b.headerRaw ?? row(b.header), b.sepRaw ?? row(b.header.map(() => "---")), ...b.steps.map((t) => t.rowRaw ?? row(t.cells))];
+  // Pains tagged on the steps go into one extra column at the end, so Present and the export show them with each step.
+  // The file's own cells stay as they are: the column is only appended.
+  if (!b.steps.some((t) => t.pains.length)) return lines;
+  const painName = (id) => { const p = sk.pains.find((x) => x.id === id); return p && p.text.trim() ? `${id} ${p.text.trim()}` : id; };
+  const head = b.header.some((h) => stripMd(h).trim().toLowerCase() === "pains") ? "Pains (tagged)" : "Pains";
+  const add = (line, cell) => `${line.replace(/\s*\|?\s*$/, "")} | ${cellText(cell)} |`;
+  return lines.map((l, i) => (i === 1 ? `${l.replace(/\|?\s*$/, "")}|---|` : add(l, i === 0 ? head : b.steps[i - 2].pains.map((id) => "⚠ " + painName(id)).join(", "))));
+}
+// Discovery, pains and notes, as Markdown sections.
+function notesSections(sk, withPainTable) {
+  const L = [];
+  const sections = DISCOVERY.map((sec) => {
+    const lines = sec.fields.map(([f, lab]) => {
+      const v = (sk.discovery[`${sec.id}.${f}`] || "").trim();
+      return v ? `- **${lab}:** ${v.split(/\r?\n/).map((x) => x.trim()).filter(Boolean).join("\n  ")}` : "";
+    }).filter(Boolean);
+    return lines.length ? [`### ${sec.title}`, "", ...lines, ""] : [];
+  }).flat();
+  if (sections.length) L.push("## Technical discovery", "", ...sections);
+  if (withPainTable || sk.pains.length) {
+    L.push("## Pains", "");
+    if (sk.pains.length) { L.push("| Pain | # | Cost |", "|---|---|---|"); sk.pains.forEach((p) => L.push(`| ${cellText(p.text) || "(not written yet)"} | ${p.id} | ${cellText(p.cost)} |`)); }
+    else L.push("No pains noted yet.");
+    L.push("");
+  }
+  if (sk.notes.trim()) L.push("## Notes", "", sk.notes.trim(), "");
+  return L;
+}
+// The model, stored with the file so Edit can reopen it exactly. fnv is the fingerprint of everything above it.
+// "--" would end the comment early, so it is written as "--" inside the JSON strings.
+function sketchComment(sk, body) { return [`<!-- architecture-viewer-sketch fnv=${fnv(body)}`, JSON.stringify(sk).replace(/--/g, "-\\u002d"), "-->", ""].join("\n"); }
+const SKETCH_RE = /<!--\s*architecture-viewer-sketch(?:\s+fnv=([0-9a-f]+))?\s*\n([\s\S]*?)\n\s*-->/;
+function stripSketch(text) { return String(text || "").replace(/\n*<!--\s*architecture-viewer-sketch[\s\S]*?-->\s*$/, "\n"); }
+// { sk, intact } when the text carries a sketch. intact: the text has not changed since it was written.
+function embeddedSketch(text) {
+  const m = SKETCH_RE.exec(text || "");
+  if (!m) return null;
+  let sk = null;
+  try { sk = normalizeSketch(JSON.parse(m[2])); } catch { /* damaged */ }
+  return { sk, intact: !m[1] || m[1] === fnv(text.slice(0, m.index)) };
+}
+function fileName(sk) {
+  if (sk.source) return sk.source.name.replace(/(\.md|\.markdown|\.txt)?$/i, "") + "-edited.md";
+  return ((sk.title || "sketch").normalize("NFKD").toLowerCase().replace(/[^a-z0-9\s-]/g, "").trim().replace(/[\s-]+/g, "-").slice(0, 60) || "sketch") + ".md";
+}
+
+// { md, maps, diagrams }: the Markdown, the id maps per board, and each board's diagram index in it.
+// diffs: add the Diffs section (export, copy, present). The canvas does not need it.
+function sketchMarkdown(sk, { diffs = false } = {}) {
+  return sk.source ? fileMarkdown(sk, diffs) : nativeMarkdown(sk, diffs);
+}
+function fileMarkdown(sk, diffs) {
+  const text = stripSketch(sk.source.text), eol = text.includes("\r\n") ? "\r\n" : "\n";
+  const lines = text.split(/\r?\n/), doc = parseMarkdown(text), maps = {}, diagrams = {}, edits = [];
+  for (const key of sk.slots) {
+    const b = sk.boards[key], d = doc.diagrams[b.diagram];
+    if (!d) continue;
+    const m = boardMermaid(sk, key);
+    maps[key] = m.map; diagrams[key] = b.diagram;
+    if (fnv(m.src) !== b.genHash) edits.push({ at: d.from + 1, count: Math.max(0, d.to - d.from - 1), lines: m.src.split("\n") });
+    const t = doc.tables[b.table];
+    if (t) edits.push({ at: t.from, count: t.to - t.from + 1, lines: fileTable(sk, b) });
+  }
+  if (doc.titleLine >= 0 && sk.title.trim() && sk.title.trim() !== sk.source.title) edits.push({ at: doc.titleLine, count: 1, lines: [`# ${sk.title.trim()}`] });
+  edits.sort((a, b) => b.at - a.at).forEach((e) => lines.splice(e.at, e.count, ...e.lines));
+  while (lines.length && !lines.at(-1).trim()) lines.pop();
+  const extra = [...notesSections(sk, false), ...(diffs ? diffSection(sk) : [])];
+  const body = [...lines, "", ...extra].join(eol).replace(/\s+$/, "") + eol + eol;
+  return { md: body + sketchComment(sk, body), maps, diagrams };
+}
+function nativeMarkdown(sk, diffs) {
+  const painName = (id) => { const p = sk.pains.find((x) => x.id === id); return cellText(p && p.text.trim() ? `${id} ${p.text}` : id); };
+  const date = new Date(sk.updated).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  const L = [`# ${sk.title.trim() || "Untitled sketch"}`, "", `Sketched in Architecture Viewer on ${date}. All data is synthesized for the exercise.`, "", ...notesSections(sk, true)];
+  const maps = {}, diagrams = {};
+  let n = 0;
+  for (const key of sk.slots) {
+    const b = sk.boards[key];
+    L.push(`## ${BOARDS[key].heading}`, "");
+    if (b.nodes.length) { const m = boardMermaid(sk, key); maps[key] = m.map; diagrams[key] = n++; L.push("```mermaid", m.src, "```", ""); }
+    else { maps[key] = new Map(); L.push("No diagram yet.", ""); }
+    L.push(`### ${BOARDS[key].steps}`, "");
+    if (!b.steps.length) { L.push("No steps yet.", ""); continue; }
+    // The key column comes first, so it wins any tie when the viewer picks the key column.
+    if (key === "asis") {
+      L.push("| # | Step | Who | Tool | Wait | Pain |", "|---|---|---|---|---|---|");
+      b.steps.forEach((t, i) => L.push(`| ${stepKey(key, i, sk)} | ${cellText(t.name) || "Untitled step"} | ${cellText(t.who)} | ${cellText(t.tool)} | ${cellText(t.wait)} | ${t.pains.map((p) => "⚠ " + painName(p)).join(", ")} |`));
+    } else {
+      L.push("| # | Step | Owner | What happens | Removes |", "|---|---|---|---|---|");
+      b.steps.forEach((t, i) => L.push(`| ${stepKey(key, i, sk)} | ${cellText(t.name) || "Untitled step"} | ${cellText(t.owner)} | ${cellText(t.what)} | ${t.pains.map(painName).join(", ")} |`));
+    }
+    L.push("");
+  }
+  if (sk.pains.length && sk.boards.tobe) {
+    const steps = sk.boards.tobe.steps;
+    L.push("## Pain scorecard", "", "| Pain | Fixed by | Measure |", "|---|---|---|");
+    sk.pains.forEach((p) => {
+      const fix = steps.map((t, i) => (t.pains.includes(p.id) ? `Step ${stepKey("tobe", i, sk)} ${cellText(t.name)}`.trim() : "")).filter(Boolean);
+      L.push(`| ${painName(p.id)} | ${fix.join(", ") || "**Not removed yet**"} | ${cellText(p.measure)} |`);
+    });
+    L.push("");
+  }
+  if (diffs) L.push(...diffSection(sk));
+  const body = L.join("\n");
+  return { md: body + sketchComment(sk, body), maps, diagrams };
+}
+
+/* --- Storage: one localStorage entry per sketch. No separate index that could get out of step. --- */
+
+function listSketches() {
+  const out = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || !k.startsWith(SK_PREFIX)) continue;
+      try {
+        const o = JSON.parse(localStorage.getItem(k));
+        out.push({ id: k.slice(SK_PREFIX.length), title: String(o.title || ""), updated: +o.updated || 0, source: o.source?.name || "", hash: o.source?.hash || "", ok: !!normalizeSketch(o) });
+      } catch { out.push({ id: k.slice(SK_PREFIX.length), title: "", updated: 0, ok: false }); }
+    }
+  } catch { /* storage blocked */ }
+  return out.sort((a, b) => b.updated - a.updated);
+}
+function loadSketch(id) { if (!id) return null; try { return normalizeSketch(JSON.parse(lsGet(SK_PREFIX + id))); } catch { return null; } }
+function saveSketch() {
+  clearTimeout(cr.saveT); cr.saveT = 0;
+  const sk = cr.sk;
+  if (!sk) return true;
+  const ok = lsSet(SK_PREFIX + sk.id, JSON.stringify(sk)) && lsSet(SK_ACTIVE, sk.id);
+  showSaved(ok ? `Saved ${new Date(sk.updated).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Not saved: export to keep it", !ok);
+  return ok;
+}
+function showSaved(text, bad) {
+  const el = $("saveState");
+  el.textContent = text; el.classList.toggle("bad", !!bad);
+  el.title = `${bad ? "Browser storage is blocked or full, so changes are not kept. " : ""}Saved in this browser for ${location.protocol === "file:" ? "local files" : location.origin}. Another address or port has its own storage, so export a copy to be safe.`;
+}
+// The open tab, the open discovery sections, and the last board per sketch.
+function storeUi() {
+  if (cr.sk) cr.boards = { ...cr.boards, [cr.sk.id]: cr.board };
+  lsSet(SK_UI, JSON.stringify({ tab: cr.tab, open: cr.open, boards: cr.boards || {} }));
+}
+function loadUi() {
+  try { const u = JSON.parse(lsGet(SK_UI) || "{}"); if (u.tab) cr.tab = u.tab; if (u.open) cr.open = u.open; cr.boards = u.boards || {}; } catch { /* defaults */ }
+}
+// Another tab saved the sketch that is open here: take its version instead of overwriting it later.
+addEventListener("storage", (e) => {
+  if (!cr.on || !cr.sk || e.key !== SK_PREFIX + cr.sk.id || !e.newValue) return;
+  let other = null;
+  try { other = normalizeSketch(JSON.parse(e.newValue)); } catch { return; }
+  if (!other || other.updated <= cr.sk.updated) return;
+  clearTimeout(cr.saveT); cr.saveT = 0;
+  cr.sk = other; cr.undo = []; cr.redo = [];
+  if (!cr.sk.boards[cr.board]) cr.board = cr.sk.slots[0];
+  if (cr.sel && !findSel()) cr.sel = null;
+  renderCreator(); scheduleDraw(true);
+  showSaved("Updated from another tab");
+});
+
+/* --- Diff log: every change to a sketch, kept with it, exported with it --- */
+
+// log = { base: the first state, start: what began it, entries: [{ t, s: summary, ops }] }.
+// A state is the sketch without its log. Each entry's ops turn the state before it into the state after it.
+// Arrays of objects with ids (boxes, arrows, steps…) are compared by id, so an insert is one op, not a shift.
+function stateOf(sk) { const { log, ...rest } = sk; return rest; }
+const clone = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
+const keyed = (a) => Array.isArray(a) && a.length > 0 && a.every((x) => x && typeof x === "object" && typeof x.id === "string") && new Set(a.map((x) => x.id)).size === a.length;
+function jdiff(a, b, path = [], ops = []) {
+  if (a === b) return ops;
+  const ao = a !== null && typeof a === "object", bo = b !== null && typeof b === "object";
+  if (!ao || !bo || Array.isArray(a) !== Array.isArray(b)) {
+    if (JSON.stringify(a) !== JSON.stringify(b)) ops.push(b === undefined ? { p: path, d: 1 } : { p: path, v: clone(b) });
+    return ops;
+  }
+  if (Array.isArray(a)) {
+    if ((keyed(a) || !a.length) && (keyed(b) || !b.length) && (a.length || b.length)) {
+      const am = new Map(a.map((x) => [x.id, x])), bm = new Map(b.map((x) => [x.id, x]));
+      for (const id of am.keys()) if (!bm.has(id)) ops.push({ p: [...path, "#" + id], d: 1 });
+      for (const [id, x] of bm) if (am.has(id)) jdiff(am.get(id), x, [...path, "#" + id], ops); else ops.push({ p: [...path, "#" + id], v: clone(x) });
+      const kept = a.map((x) => x.id).filter((id) => bm.has(id)).concat(b.map((x) => x.id).filter((id) => !am.has(id)));
+      const order = b.map((x) => x.id);
+      if (kept.join("\n") !== order.join("\n")) ops.push({ p: path, order });
+      return ops;
+    }
+    const n = Math.min(a.length, b.length);
+    for (let i = 0; i < n; i++) jdiff(a[i], b[i], [...path, i], ops);
+    for (let i = n; i < b.length; i++) ops.push({ p: [...path, i], v: clone(b[i]) });
+    if (b.length < a.length) ops.push({ p: path, n: b.length });
+    return ops;
+  }
+  for (const k of Object.keys(a)) if (!(k in b) || b[k] === undefined) { if (a[k] !== undefined && !(path.length === 0 && k === "updated")) ops.push({ p: [...path, k], d: 1 }); }
+  for (const k of Object.keys(b)) if (!(path.length === 0 && k === "updated") && b[k] !== undefined) jdiff(a[k], b[k], [...path, k], ops);
+  return ops;
+}
+// Applies ops to a state in place and returns it. Throws on a path that does not fit, so damage is noticed.
+function japply(root, ops) {
+  const step = (obj, seg) => (Array.isArray(obj) && typeof seg === "string" && seg[0] === "#" ? obj.find((x) => x && x.id === seg.slice(1)) : obj[seg]);
+  for (const o of ops) {
+    if (!o.p.length) { if ("v" in o) root = clone(o.v); continue; }
+    let obj = root;
+    for (const seg of o.p.slice(0, -1)) { obj = step(obj, seg); if (obj == null || typeof obj !== "object") throw new Error("history path"); }
+    const last = o.p.at(-1);
+    if ("order" in o || "n" in o) {
+      const arr = step(obj, last);
+      if (!Array.isArray(arr)) throw new Error("history order");
+      if ("n" in o) arr.length = o.n;
+      else { const m = new Map(arr.map((x) => [x.id, x])); arr.splice(0, arr.length, ...o.order.map((id) => m.get(id)).filter(Boolean)); }
+    } else if (Array.isArray(obj) && typeof last === "string" && last[0] === "#") {
+      const i = obj.findIndex((x) => x && x.id === last.slice(1));
+      if (o.d) { if (i >= 0) obj.splice(i, 1); } else if (i >= 0) obj[i] = clone(o.v); else obj.push(clone(o.v));
+    } else if (o.d) { if (Array.isArray(obj)) obj.splice(last, 1); else delete obj[last]; }
+    else obj[last] = clone(o.v);
+  }
+  return root;
+}
+// Walks the history. visit(i, stateBefore, entry) runs before entry i is applied.
+function replay(log, upto = log.entries.length, visit) {
+  let st = clone(log.base);
+  for (let i = 0; i < upto; i++) { if (visit) visit(i, st, log.entries[i]); st = japply(st, log.entries[i].ops); }
+  return st;
+}
+const canon = (v) => JSON.stringify(v, (k, x) => (x && typeof x === "object" && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map((key) => [key, x[key]])) : x));
+const sameState = (a, b) => { const x = normalizeSketch(a), y = normalizeSketch(b); if (!x || !y) return false; delete x.updated; delete y.updated; delete x.log; delete y.log; return canon(x) === canon(y); };
+function newLog(sk, start) { return { base: clone(stateOf(sk)), start, entries: [] }; }
+// Every sketch gets a log. A log that no longer leads to the saved state is replaced, so it can never restore something wrong.
+function ensureLog(sk) {
+  if (!sk.log) { sk.log = newLog(sk, sk.source ? `Opened a copy of ${sk.source.name}` : "History starts here"); return true; }
+  try { if (sameState(replay(sk.log), stateOf(sk))) return true; } catch { /* damaged */ }
+  sk.log = newLog(sk, "History restarted here, because the saved history did not match this sketch");
+  return false;
+}
+function validLog(l) {
+  if (!l || typeof l !== "object" || !l.base || typeof l.base !== "object" || !Array.isArray(l.entries)) return null;
+  return { base: l.base, start: String(l.start || "History starts here"),
+    entries: l.entries.filter((e) => e && Array.isArray(e.ops)).map((e) => ({ t: +e.t || 0, s: String(e.s || "Change"), ops: e.ops })) };
+}
+
+// Plain-language lines for what ops change, looked up in the state before them.
+function describeOps(prev, ops) {
+  const out = [], q = (v) => { const s = String(v ?? "").replace(/\s*\n\s*/g, " / ").trim(); return `“${s.length > 70 ? s.slice(0, 68) + "…" : s}”`; };
+  const byId = (arr, seg) => (Array.isArray(arr) && typeof seg === "string" && seg[0] === "#" ? arr.find((x) => x?.id === seg.slice(1)) : null);
+  const add = (l) => { if (l && !out.includes(l)) out.push(l); };
+  // Boxes and groups added by these same ops, so arrows to them can be named too.
+  const added = new Map();
+  for (const o of ops) if (o.p[0] === "boards" && (o.p[2] === "nodes" || o.p[2] === "groups") && o.p.length === 4 && o.v) added.set(o.p[3], o.v.label);
+  for (const o of ops) {
+    const [a, b, c, d, e] = o.p;
+    if (a === "title") add(`Renamed the sketch to ${q(o.v)}`);
+    else if (a === "notes") add("Edited the notes");
+    else if (a === "discovery") {
+      const [sec, f] = String(b || "").split("."), S = DISCOVERY.find((x) => x.id === sec), F = S?.fields.find((x) => x[0] === f);
+      const label = F?.[1] && F[1] !== S?.title ? `${S?.title || sec}, ${F[1]}` : S?.title || sec;
+      add(`Discovery, ${label}: ${o.d ? "cleared" : q(o.v)}`);
+    } else if (a === "pains") {
+      const p = byId(prev.pains, b);
+      if (o.order) add("Reordered the pains");
+      else if (o.p.length === 2) add(o.d ? `Removed pain ${p?.id || ""}` : `Added pain ${o.v?.id || ""}`);
+      else add(`Pain ${p?.id || ""}: ${{ text: "text", cost: "cost", measure: "measure" }[c] || c} ${q(o.v)}`);
+    } else if (a === "boards") {
+      const bd = prev.boards?.[b], where = bd ? ` (${bd.kind === "file" ? bd.heading || "diagram" : BOARDS[b]?.label || b})` : "";
+      if (!bd) { add("Added a board"); continue; }
+      const nodeName = (seg) => { const n = byId(bd.nodes, seg) || byId(bd.groups, seg); return q(n?.label ?? added.get(seg) ?? "box"); };
+      if (c === "nodes") {
+        const n = byId(bd.nodes, d);
+        if (o.order) add(`Reordered boxes${where}`);
+        else if (o.p.length === 4) add(o.d ? `Removed box ${q(n?.label)}${where}` : `Added ${SHAPE_NAMES[o.v?.shape]?.toLowerCase().replace(" 🔒", "") || "box"} ${q(o.v?.label)}${where}`);
+        else if (e === "label") add(`Renamed box ${q(n?.label)} to ${q(o.v)}${where}`);
+        else if (e === "sub") add(`Changed the text of box ${q(n?.label)}${where}`);
+        else if (e === "shape" || e === "br") add(`Changed the shape of box ${q(n?.label)}${where}`);
+        else if (e === "group") add(`Moved box ${q(n?.label)} ${o.v ? `into group ${q(byId(bd.groups, "#" + o.v)?.label || "new group")}` : "out of its group"}${where}`);
+      } else if (c === "groups") {
+        const g = byId(bd.groups, d);
+        if (o.p.length === 4) add(o.d ? `Removed group ${q(g?.label)}${where}` : `Added group ${q(o.v?.label)}${where}`);
+        else if (e === "label") add(`Renamed group ${q(g?.label)} to ${q(o.v)}${where}`);
+      } else if (c === "edges") {
+        const x = byId(bd.edges, d), ends = (ed) => (ed ? `${nodeName("#" + ed.from)} → ${nodeName("#" + ed.to)}` : "arrow");
+        if (o.p.length === 4) add(o.d ? `Removed arrow ${ends(x)}${where}` : `Added arrow ${ends(o.v)}${where}`);
+        else if (e === "label") add(`Arrow ${ends(x)}: label ${q(o.v)}${where}`);
+        else if (e === "dashed" || e === "arrow") add(`Changed the line of arrow ${ends(x)}${where}`);
+      } else if (c === "steps") {
+        const t = byId(bd.steps, d), name = (s) => q(bd.kind === "file" ? stripMd(s?.cells?.[bd.nameCol] || s?.key || "step") : s?.name || "step");
+        if (o.order) add(`Reordered the steps${where}`);
+        else if (o.p.length === 4) add(o.d ? `Removed step ${name(t)}${where}` : `Added a step${where}`);
+        else if (e === "nodes" || e === "over") add(`Linked boxes to step ${name(t)}${where}`);
+        else if (e === "pains") add(`Changed the pains of step ${name(t)}${where}`);
+        else if (e !== "rowRaw") add(`Edited step ${name(t)}${where}`);
+      } else if (c === "pos") add(o.p.length === 3 ? `Reset positions${where}` : o.d ? `Reset the position of box ${nodeName("#" + d)}${where}` : `Moved box ${nodeName("#" + d)}${where}`);
+      else if (c === "dir") add(`Direction: ${{ AUTO: "auto", LR: "left to right", TD: "top down" }[o.v] || o.v}${where}`);
+      else if (o.p.length === 2) add(o.d ? "Removed a board" : "Added a board");
+    } else if (a === "slots") add("Changed the boards");
+  }
+  return out;
+}
+function summarize(prev, ops) {
+  const lines = describeOps(prev, ops);
+  return lines.length ? lines[0] + (lines.length > 1 ? ` and ${lines.length - 1} more` : "") : "Small change";
+}
+// Called by change() after an edit. A run of typing in one field stays one entry, like one undo step.
+function logChange(beforeJSON, coalesce) {
+  const log = cr.sk.log, now = stateOf(cr.sk);
+  if (coalesce && cr.logPrev && cr.logEntry && cr.logEntry === log.entries.at(-1)) {
+    const e = cr.logEntry;
+    e.ops = jdiff(cr.logPrev, now); e.t = Date.now(); e.s = summarize(cr.logPrev, e.ops);
+    if (!e.ops.length) { log.entries.pop(); cr.logPrev = cr.logEntry = null; cr.lastKey = ""; }
+    return;
+  }
+  const prev = JSON.parse(beforeJSON), ops = jdiff(prev, now);
+  if (!ops.length) return;
+  const e = { t: Date.now(), s: summarize(prev, ops), ops };
+  log.entries.push(e);
+  cr.logPrev = prev; cr.logEntry = e;
+}
+function logReplace(prevState, label) {
+  const ops = jdiff(prevState, stateOf(cr.sk));
+  if (ops.length) cr.sk.log.entries.push({ t: Date.now(), s: `${label}: ${summarize(prevState, ops)}`, ops });
+  cr.logPrev = cr.logEntry = null;
+}
+// The Diffs section of an exported file.
+function diffSection(sk) {
+  const log = sk.log;
+  if (!log || !log.entries.length) return [];
+  const when = (t) => new Date(t).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  const L = ["## Diffs", "", `Every change, oldest first. ${log.start}.`, ""];
+  try {
+    replay(log, log.entries.length, (i, prev, e) => {
+      const lines = describeOps(prev, e.ops);
+      L.push(`### ${i + 1}. ${when(e.t)}: ${e.s}`, "");
+      lines.slice(0, 12).forEach((l) => L.push(`- ${l}`));
+      if (lines.length > 12) L.push(`- … and ${lines.length - 12} more`);
+      L.push("");
+    });
+  } catch { L.push("The history could not be read.", ""); }
+  return L;
+}
+
+/* --- Diffs tab --- */
+
+function renderDiffs() {
+  const log = cr.sk.log, n = log.entries.length, sel = cr.preview ? cr.preview.i : n;
+  const time = (t) => new Date(t).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  const row = (i) => {
+    const e = log.entries[i - 1];
+    return `<li class="hrow${i === sel ? " sel" : ""}" data-i="${i}" tabindex="0"><span class="hn">${i}</span><div class="hb"><div class="hs">${esc(i ? e.s : log.start)}</div><div class="ht">${i ? esc(time(e.t)) : "Start"}</div></div>${i === n ? '<span class="now">Now</span>' : ""}</li>`;
+  };
+  let detail = "";
+  if (cr.preview) {
+    const i = cr.preview.i, lines = i ? cr.preview.lines : [log.start];
+    detail = `<div class="hdetail"><div class="hdh">State ${i}${i ? `, ${esc(time(log.entries[i - 1].t))}` : ""}</div>
+      <ul>${lines.slice(0, 30).map((l) => `<li>${esc(l)}</li>`).join("")}${lines.length > 30 ? `<li>… and ${lines.length - 30} more</li>` : ""}</ul>
+      <div class="iacts"><button class="primary" data-act="restore">Restore this state</button><button data-act="now">Back to now</button></div></div>`;
+  }
+  $("tab-diffs").innerHTML = `<div class="chead"><h3>Diffs</h3><p>Every change, newest first. Select one to see that state on the canvas, then restore it if you want it back. Restoring is a change too, so it can be undone.</p></div>
+    ${detail}<ol class="hlist">${Array.from({ length: n + 1 }, (_, k) => row(n - k)).join("")}</ol>`;
+}
+function previewState(i) {
+  const log = cr.sk.log;
+  if (i >= log.entries.length) return clearPreview();
+  let lines = [];
+  try {
+    const st = replay(log, i, (k, prev, e) => { if (k === i - 1) lines = describeOps(prev, e.ops); });
+    const sk = normalizeSketch(st);
+    if (!sk) throw new Error("state");
+    cr.preview = { i, sk, lines };
+  } catch { showSaved("That state could not be read", true); return; }
+  cr.sel = null; cr.connect = null; cr.linking = -1;
+  renderDiffs(); renderInspector(); scheduleDraw(true);
+}
+function clearPreview() {
+  if (!cr.preview) return;
+  cr.preview = null;
+  renderCreator(); scheduleDraw(true);
+}
+function restoreState() {
+  if (!cr.preview) return;
+  const { i, sk } = cr.preview, log = cr.sk.log;
+  const before = stateOf(cr.sk), beforeJSON = JSON.stringify(before);
+  cr.preview = null;
+  cr.undo.push(beforeJSON); if (cr.undo.length > 50) cr.undo.shift();
+  cr.redo = []; cr.lastKey = "";
+  sk.log = log; sk.id = cr.sk.id;
+  cr.sk = sk;
+  if (!cr.sk.boards[cr.board]) cr.board = cr.sk.slots[0];
+  if (cr.sel && !findSel()) cr.sel = null;
+  logReplace(JSON.parse(beforeJSON), `Restored state ${i}`);
+  touched(true, true);
+}
+
+// Every edit goes through change(). key merges a run of typing into one undo step and one diff entry.
+// Undo snapshots leave the log out, so undoing never removes history: it adds an entry.
+function change(fn, { key = "", layout = false, ui = true } = {}) {
+  if (cr.preview) { cr.preview = null; layout = true; }
+  const before = JSON.stringify(stateOf(cr.sk));
+  fn(cr.sk, board());
+  cr.sk.v = 3; // an edited sketch is in the current format
+  const now = Date.now(), coalesce = !!key && key === cr.lastKey && now - cr.lastAt < 2000;
+  if (!coalesce) { cr.undo.push(before); if (cr.undo.length > 50) cr.undo.shift(); }
+  cr.redo = []; cr.lastKey = key; cr.lastAt = now;
+  logChange(before, coalesce);
+  touched(layout, ui);
+}
+function touched(layout, ui) {
+  cr.sk.updated = Date.now();
+  clearTimeout(cr.saveT); cr.saveT = setTimeout(saveSketch, 300);
+  if (ui) renderCreator(); else updateCounts();
+  scheduleDraw(layout);
+}
+function history(dir) {
+  const from = dir < 0 ? cr.undo : cr.redo, to = dir < 0 ? cr.redo : cr.undo;
+  if (!from.length) return;
+  const beforeJSON = JSON.stringify(stateOf(cr.sk)), log = cr.sk.log;
+  to.push(beforeJSON);
+  cr.sk = normalizeSketch(JSON.parse(from.pop()));
+  cr.sk.log = log; cr.preview = null;
+  logReplace(JSON.parse(beforeJSON), dir < 0 ? "Undo" : "Redo");
+  cr.lastKey = ""; cr.connect = null; cr.linking = -1;
+  if (!cr.sk.boards[cr.board]) cr.board = cr.sk.slots[0];
+  if (cr.sel && !findSel()) cr.sel = null;
+  touched(true, true);
+}
+function findSel() {
+  if (!cr.sel) return null;
+  const b = board();
+  return cr.sel.kind === "group" ? b.groups.find((g) => g.id === cr.sel.id) : b.nodes.find((n) => n.id === cr.sel.id);
+}
+
+/* --- A small dialog with named buttons, instead of confirm() --- */
+
+function ask(title, text, buttons) {
+  return new Promise((resolve) => {
+    const dlg = $("askDlg");
+    dlg.innerHTML = `<form method="dialog"><h2>${esc(title)}</h2><p>${text}</p><div class="dbtns">${buttons.map((b, i) =>
+      `<button value="${i}" class="${b.primary ? "primary" : ""}${b.danger ? " danger" : ""}">${esc(b.label)}</button>`).join("")}</div></form>`;
+    dlg.onclose = () => { const v = dlg.returnValue; dlg.returnValue = ""; resolve(v === "" ? null : buttons[+v]?.value ?? null); };
+    dlg.showModal();
+    dlg.querySelector("button.primary")?.focus();
+  });
+}
+
+/* --- Drawing the active board --- */
+
+function scheduleDraw(layout) {
+  if (layout) cr.relayout = true;
+  clearTimeout(cr.drawT); cr.drawT = setTimeout(draw, 180);
+}
+// Auto direction: draw the board left to right and top down, and keep the one that shows it larger.
+// It is decided again only when boxes or arrows change, and it switches only for a clear gain.
+async function pickDirection() {
+  const key = cr.board, b = board(), prev = cr.autoDir[key];
+  if (b.dir !== "AUTO" || !b.nodes.length || (!cr.relayout && prev)) return;
+  try {
+    await document.fonts.load(`${BOX_FONT}px "IBM Plex Sans"`).catch(() => null);
+    initMermaid();
+    const p = paneSize(), fit = {};
+    for (const d of ["LR", "TD"]) {
+      cr.autoDir[key] = d;
+      const { svg } = await mermaid.render(`vwd${++cr.dirSeq}`, boardMermaid(cr.sk, key).src);
+      const [, , w, h] = svg.match(/viewBox="([\d.\s-]+)"/)[1].trim().split(/\s+/).map(Number);
+      fit[d] = Math.min(p.w / w, p.h / h);
+    }
+    const best = fit.TD > fit.LR ? "TD" : "LR", other = best === "TD" ? "LR" : "TD";
+    cr.autoDir[key] = prev && prev !== best && fit[prev] * 1.15 >= fit[other] ? prev : best;
+  } catch { cr.autoDir[key] = prev || "LR"; }
+}
+async function draw() {
+  if (!cr.on) return;
+  await pickDirection();
+  if (!cr.on) return;
+  // While a past state is previewed, the canvas shows that state, read-only.
+  const shown = cr.preview?.sk || cr.sk;
+  if (!shown.boards[cr.board]) { cam.full = null; cam.cur = null; showMessage("This board did not exist yet", "<p>Pick another board, or go back to now.</p>"); refreshMinimap(); banner(); return; }
+  const { md, maps, diagrams } = sketchMarkdown(shown);
+  cr.idMap = maps[cr.board] || new Map();
+  cr.rev = new Map([...cr.idMap].map(([sl, id]) => [id, sl]));
+  Object.assign(state, { text: md, name: fileName(cr.sk), live: false, sel: -1, comp: null });
+  stopPlay();
+  if (!shown.boards[cr.board].nodes.length) {
+    cam.full = null; cam.cur = null; cr.relayout = false;
+    return cr.preview ? (showMessage("This board was empty then", "<p>Pick another state, or go back to now.</p>"), banner()) : showEmptyBoard();
+  }
+  state.forcedDiagram = diagrams[cr.board] ?? 0;
+  if (cr.relayout) { state.relayout = true; cr.relayout = false; }
+  await render();
+}
+function showEmptyBoard() {
+  const b = board(), tobe = cr.board === "tobe" && !isFile(b);
+  $("docTitle").textContent = document.title = cr.sk.title.trim() || "Untitled sketch";
+  $("docSub").textContent = boardLabel(cr.sk, cr.board);
+  if (isFile(b)) {
+    showMessage("This diagram has no boxes", "<p>Add one with <b>Actions</b>, a right-click, or the bar at the bottom.</p>");
+  } else {
+    showMessage(tobe ? "Sketch the proposed architecture" : "Map the process as it runs today",
+      `<p>Type in the bar at the bottom, for example <code>${tobe ? "Requester -> Intake service : chat" : "Requester -> Ops inbox : email"}</code>, or use <b>Actions</b>.</p>` +
+      (tobe ? "<p>Or start from the standard pattern: front door, intake, agent work, routing, a human gate, and status. Rename the boxes to fit.</p><button id=\"patternBtn\">Start from the standard pattern</button>"
+        : "<p>Then add the steps on the right, and pin each pain to the step where it happens.</p>"));
+  }
+  $("patternBtn")?.addEventListener("click", insertPattern);
+  refreshMinimap();
+}
+function insertPattern() {
+  change((sk, b) => {
+    const bot = { id: uid("g"), label: "Platform", parent: null }, build = { id: uid("g"), label: "Agent", parent: null };
+    b.groups.push(bot, build);
+    const box = (label, sub, shape, group) => { const n = { id: uid("n"), label, sub, shape, group }; b.nodes.push(n); return n.id; };
+    const req = box("Requester", "chat, portal or email", "person", null);
+    const intake = box("Intake", "asks for missing fields once", "box", bot.id);
+    const agent = box("Agent", "prepares the work from rules and sources", "box", build.id);
+    const route = box("Route + notify", "rules pick the approver", "box", bot.id);
+    const gate = box("Approver decides", "a person signs off", "gate", null);
+    const act = box("Act + log", "who and when", "box", bot.id);
+    const status = box("Status view", "what is stuck >24h?", "box", bot.id);
+    const record = box("Request record", "append-only log", "store", null);
+    const edge = (from, to, label = "", dashed = false) => b.edges.push({ id: uid("e"), from, to, label, dashed });
+    edge(req, intake, "request"); edge(intake, agent, "launch"); edge(agent, route, "draft ready"); edge(route, gate, "notify");
+    edge(gate, act, "approved"); edge(intake, record, "", true); edge(act, record, "", true); edge(record, status, "reads", true);
+    [["Request arrives", [req, intake], "Platform"], ["Ask once for what's missing", [intake], "Platform"], ["Agent prepares the work", [agent], "Agent"],
+      ["Route and notify the approver", [route], "Platform"], ["A person decides", [gate], "Approver"], ["Act and log", [act, record], "Platform"],
+      ["Status and exceptions", [status], "Platform"]]
+      .forEach(([name, nodes, owner]) => b.steps.push({ id: uid("t"), name, who: "", tool: "", wait: "", what: "", owner, pains: [], nodes }));
+  }, { layout: true });
+  cr.tab = "steps"; storeUi(); renderCreator();
+}
+
+// Called by render() once the board is on screen.
+function crAfterRender() {
+  if (!cr.on || !state.svg) return;
+  state.svg.querySelectorAll(".node").forEach((el) => el.addEventListener("dblclick", (e) => { e.stopPropagation(); focusLabel(); }));
+  crHighlight();
+}
+function crHighlight() {
+  if (!cr.on) return;
+  banner();
+  if (!state.svg || !state.model) return;
+  if (cr.preview) { highlight(); return; }
+  const i = cr.linking >= 0 ? cr.linking : cr.active, t = board().steps[i];
+  state.svg.querySelectorAll(".vw-painsel, .vw-pain [data-p].on").forEach((el) => el.classList.remove("vw-painsel", "on"));
+  if (!t && cr.pain && cr.sk.pains.some((p) => p.id === cr.pain)) { painHighlight(cr.pain); return markSel(); }
+  // The same highlight as in Present mode: the step's boxes and arrows, and what they touch.
+  // While linking boxes, only the linked boxes, so each click shows its effect at once.
+  const f = state.flow?.steps[i];
+  if (t && f && cr.linking < 0 && f.key === stepKey(cr.board, i)) highlight(f.P, f.S, f.EP, f.ES);
+  else {
+    const P = new Set([...(t ? t.nodes : []), ...(t?.over || [])].map((id) => cr.rev.get(id)).filter(Boolean));
+    highlight(P, new Set(), new Set(state.model.edges.filter((e) => P.has(e.from) && P.has(e.to))), new Set());
+  }
+  markSel();
+}
+function markSel() {
+  state.svg.querySelectorAll(".vw-sel, .vw-from").forEach((el) => el.classList.remove("vw-sel", "vw-from"));
+  const mark = (id, cls) => { const sl = id && cr.rev.get(id); if (sl) state.model.nodes.get(sl)?.el.classList.add(cls); };
+  mark(cr.sel?.id, "vw-sel");
+  mark(cr.connect?.from, "vw-from");
+}
+// A pain selected in the Pains tab: the boxes of the steps tagged with it on this board, and its ⚠ tags.
+function painHighlight(pid) {
+  const P = new Set();
+  for (const t of board().steps) if (t.pains.includes(pid)) [...t.nodes, ...(t.over || [])].forEach((id) => { const sl = cr.rev.get(id); if (sl) P.add(sl); });
+  state.svg.querySelectorAll(`.vw-pain [data-p="${pid}"]`).forEach((el) => {
+    el.classList.add("on");
+    const node = el.closest(".node");
+    for (const [id, n] of state.model.nodes) if (n.el === node) P.add(id);
+  });
+  highlight(P, new Set(), new Set(state.model.edges.filter((e) => P.has(e.from) && P.has(e.to))), new Set());
+  for (const id of P) state.model.nodes.get(id)?.el.classList.add("vw-painsel");
+}
+function banner() {
+  const el = $("cbanner");
+  let html = "";
+  if (cr.preview) html = `Showing state ${cr.preview.i} (read-only). <button data-act="restore">Restore it</button><button data-act="now">Back to now</button>`;
+  else if (cr.connect) html = `${cr.connect.from ? "Now click the box the arrow goes to." : "Click the box the arrow starts from."} <button data-act="cancel">Cancel</button>`;
+  else if (cr.linking >= 0) html = `Click boxes to link them to step <b>${esc(displayKey(stepKey(cr.board, cr.linking)))}</b>, or click again to unlink. <button data-act="cancel">Done</button>`;
+  el.innerHTML = html; el.hidden = !html;
+  document.body.classList.toggle("connecting", !!cr.connect);
+  document.body.classList.toggle("linking", cr.linking >= 0);
+}
+
+function crNodeClick(slug) {
+  if (cr.justDragged || cr.preview) return;
+  const id = cr.idMap.get(slug);
+  if (!id) return;
+  const b = board(), group = b.groups.find((g) => g.id === id);
+  if (cr.connect) {
+    if (group) return;
+    if (!cr.connect.from) { cr.connect.from = id; return crHighlight(); }
+    if (cr.connect.from === id) return;
+    const from = cr.connect.from;
+    cr.connect = null;
+    let edgeId = null;
+    change((sk, bd) => {
+      const dup = bd.edges.find((e) => e.from === from && e.to === id);
+      if (dup) { edgeId = dup.id; return; }
+      const e = { id: uid("e"), from, to: id, label: "", dashed: false, arrow: null, labelRaw: null };
+      bd.edges.push(e); edgeId = e.id;
+    }, { layout: true });
+    cr.sel = { kind: "node", id: from };
+    renderInspector(); crHighlight();
+    $("inspector").querySelector(`[data-e="${edgeId}"] input[type="text"]`)?.focus();
+    return;
+  }
+  if (cr.linking >= 0) {
+    if (group) return;
+    const t = b.steps[cr.linking];
+    change(() => { const i = t.nodes.indexOf(id); if (i >= 0) t.nodes.splice(i, 1); else t.nodes.push(id); });
+    return;
+  }
+  cr.sel = { kind: group ? "group" : "node", id };
+  renderInspector(); renderBar(); crHighlight();
+}
+function crDeselect() {
+  if (cr.connect || cr.linking >= 0) return;
+  cr.sel = null; cr.active = -1; cr.pain = null;
+  $("tab-pains").querySelectorAll(".plist li.on").forEach((li) => li.classList.remove("on"));
+  renderInspector(); markActiveStep(); crHighlight();
+}
+function focusLabel() {
+  const el = $("inspector").querySelector('[data-f="label"]');
+  if (el) { el.focus(); el.select(); }
+}
+
+/* --- Editing actions --- */
+
+// from: also draw an arrow from that box to the new one.
+// A box goes into a group only when one is named: right-click a group, or "Add a box here" on it.
+function addBox(shape = cr.shape || "box", { group = null, from = null } = {}) {
+  cr.shape = shape;
+  const b = board();
+  if (!b.groups.some((g) => g.id === group)) group = null;
+  let id;
+  change((sk, bd) => {
+    const n = { id: uid("n"), label: SHAPE_NAMES[shape] === "Box" ? "New box" : `New ${SHAPE_NAMES[shape].replace(" 🔒", "").toLowerCase()}`, sub: "", shape, group, mid: null, raw: null, keys0: null, br: null, cls: "" };
+    bd.nodes.push(n); id = n.id;
+    if (from) bd.edges.push({ id: uid("e"), from, to: id, label: "", dashed: false, arrow: null, labelRaw: null });
+  }, { layout: true });
+  cr.sel = { kind: "node", id };
+  renderInspector(); focusLabel();
+}
+function addGroup() {
+  let gid;
+  change((sk, bd) => {
+    const g = { id: uid("g"), label: "New group", parent: null, mid: null, raw: null, dir: "" };
+    bd.groups.push(g); gid = g.id;
+    bd.nodes.push({ id: uid("n"), label: "New box", sub: "", shape: "box", group: g.id, mid: null, raw: null, keys0: null, br: null, cls: "" });
+  }, { layout: true });
+  cr.sel = { kind: "group", id: gid };
+  renderInspector(); renderBar(); focusLabel();
+}
+function deleteSel() {
+  const item = findSel();
+  if (!item) return;
+  const { kind, id } = cr.sel;
+  change((sk, b) => {
+    if (kind === "group") {
+      b.groups.forEach((g) => { if (g.parent === id) g.parent = item.parent || null; });
+      b.groups = b.groups.filter((g) => g.id !== id);
+      b.nodes.forEach((n) => { if (n.group === id) n.group = item.parent || null; });
+    } else {
+      b.nodes = b.nodes.filter((n) => n.id !== id);
+      delete b.pos[id];
+    }
+    b.edges = b.edges.filter((e) => e.from !== id && e.to !== id);
+    b.steps.forEach((t) => { t.nodes = t.nodes.filter((x) => x !== id); if (t.over) t.over = t.over.filter((x) => x !== id); });
+  }, { layout: true });
+  cr.sel = null;
+  renderInspector(); renderBar();
+}
+function toggleConnect() {
+  cr.connect = cr.connect ? null : { from: cr.sel?.kind === "node" ? cr.sel.id : null };
+  cr.linking = -1;
+  renderBar(); crHighlight();
+}
+
+// Quick add: "A -> B : label", "..>" for dashed, "[Group]" for the group of this line's new boxes, "person:" etc. for the shape.
+function quickAdd(raw) {
+  let line = raw.trim();
+  if (!line) return;
+  let groupName = null;
+  const gm = line.match(/^\[([^\]]*)\]\s*(.*)$/);
+  if (gm) { groupName = gm[1].trim(); line = gm[2].trim(); }
+  const parts = line ? line.split(/\s*(-\.->|\.\.>|-->|->|→)\s*/) : [];
+  let lastId = null, lineGroup = null;
+  change((sk, b) => {
+    if (groupName !== null) {
+      let g = groupName && b.groups.find((x) => x.label.trim().toLowerCase() === groupName.toLowerCase());
+      if (groupName && !g) { g = { id: uid("g"), label: groupName, parent: null, mid: null, raw: null, dir: "" }; b.groups.push(g); }
+      lineGroup = g ? g.id : null;
+    }
+    const ids = [];
+    let edgeLabel = "";
+    for (let i = 0; i < parts.length; i += 2) {
+      let text = parts[i], shape = null;
+      const sm = text.match(/^(person|store|decision|gate|box)\s*:\s*(.*)$/i);
+      if (sm) { shape = sm[1].toLowerCase(); text = sm[2]; }
+      if (i === parts.length - 1 && parts.length > 1) {
+        const lm = text.match(/^(.*?)\s*:\s*(.*)$/);
+        if (lm) { text = lm[1]; edgeLabel = lm[2].trim(); }
+      }
+      text = text.trim();
+      if (!text) { ids.push(null); continue; }
+      let n = b.nodes.find((x) => x.label.trim().toLowerCase() === text.toLowerCase());
+      if (!n) { n = { id: uid("n"), label: text, sub: "", shape: shape || "box", group: lineGroup, mid: null, raw: null, keys0: null, br: null, cls: "" }; b.nodes.push(n); }
+      else if (shape) { n.shape = shape; n.raw = null; n.br = null; }
+      ids.push(n.id); lastId = n.id;
+    }
+    for (let i = 1; i < parts.length; i += 2) {
+      const from = ids[(i - 1) / 2], to = ids[(i + 1) / 2];
+      if (!from || !to || from === to) continue;
+      const label = i === parts.length - 2 ? edgeLabel : "";
+      const dashed = parts[i] === "..>" || parts[i] === "-.->";
+      const dup = b.edges.find((e) => e.from === from && e.to === to);
+      if (dup) { if (label) { dup.label = label; dup.labelRaw = null; } dup.dashed = dashed; dup.arrow = null; }
+      else b.edges.push({ id: uid("e"), from, to, label, dashed, arrow: null, labelRaw: null });
+    }
+  }, { layout: true });
+  if (lastId) cr.sel = { kind: "node", id: lastId };
+  renderInspector(); renderBar();
+}
+
+/* --- Sidebar: inspector, tabs --- */
+
+function renderCreator() {
+  if (!cr.on) return;
+  renderBar(); renderInspector();
+  document.querySelectorAll("#creator .tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === cr.tab)));
+  for (const t of ["discovery", "pains", "steps", "notes", "diffs"]) $("tab-" + t).hidden = t !== cr.tab;
+  if (cr.tab === "diffs") renderDiffs();
+  else if (cr.tab === "discovery") renderDiscovery();
+  else if (cr.tab === "pains") renderPains();
+  else if (cr.tab === "steps") renderStepsTab();
+  else if (document.activeElement !== $("notes")) $("notes").value = cr.sk.notes;
+  updateCounts();
+}
+function updateCounts() {
+  const sk = cr.sk;
+  $("cntDiscovery").textContent = Object.values(sk.discovery).filter((v) => v.trim()).length;
+  $("cntPains").textContent = sk.pains.length;
+  $("cntSteps").textContent = board().steps.length;
+  $("cntDiffs").textContent = cr.sk.log?.entries.length || 0;
+  if (cr.tab === "diffs" && !$("tab-diffs").hidden && !cr.preview) renderDiffs();
+  $("undoBtn").disabled = !cr.undo.length; $("redoBtn").disabled = !cr.redo.length;
+}
+function renderBar() {
+  const sk = cr.sk;
+  if (document.activeElement !== $("sketchTitle")) $("sketchTitle").value = sk.title;
+  $("sketchTitle").title = sk.source ? `A copy of ${sk.source.name}. The file itself is not changed.` : "Name of this sketch";
+  const seg = $("boardSeg");
+  seg.hidden = sk.slots.length < 2;
+  seg.innerHTML = sk.slots.map((k) => {
+    const l = boardLabel(sk, k);
+    return `<button data-board="${esc(k)}" aria-pressed="${k === cr.board}" title="${esc(l)}">${esc(l.length > 30 ? l.slice(0, 28).trim() + "…" : l)}</button>`;
+  }).join("");
+  $("quickGroup").textContent = "Outside groups";
+}
+
+function renderInspector() {
+  const el = $("inspector"), b = board(), item = findSel();
+  if (!item) {
+    cr.sel = null;
+    el.innerHTML = `<p class="ihelp">Click a box to edit it, drag it to move it. Type <kbd>/</kbd> to add boxes and arrows in one line, <kbd>N</kbd> for a new box, <kbd>C</kbd> to connect, <kbd>⌘Z</kbd> to undo.</p>`;
+    return;
+  }
+  if (cr.sel.kind === "group") {
+    const count = b.nodes.filter((n) => n.group === item.id).length;
+    el.innerHTML = `<div class="ihead"><span class="kind">Group</span><span class="muted">${count} box${count === 1 ? "" : "es"}</span></div>
+      <label class="f">Name<input type="text" data-f="label" value="${esc(item.label)}" placeholder="e.g. Platform, Finance team"></label>
+      <div class="iacts"><button data-act="box-here">Add a box here</button><button data-act="delete">Delete group</button></div>`;
+    return;
+  }
+  const nameOf = (id) => esc(b.nodes.find((n) => n.id === id)?.label || b.groups.find((g) => g.id === id)?.label || "Box");
+  const arrow = (e, out) => `<div class="arrow" data-e="${esc(e.id)}"><span class="dir" title="${out ? "To" : "From"} ${nameOf(out ? e.to : e.from)}">${out ? "→" : "←"} ${nameOf(out ? e.to : e.from)}</span>
+      <input type="text" data-ef="label" value="${esc(e.label)}" placeholder="label"><label><input type="checkbox" data-ef="dashed"${e.dashed ? " checked" : ""}>dashed</label>
+      <button data-act="del-edge" title="Delete arrow" aria-label="Delete arrow">×</button></div>`;
+  const arrows = [...b.edges.filter((e) => e.from === item.id).map((e) => arrow(e, true)), ...b.edges.filter((e) => e.to === item.id).map((e) => arrow(e, false))];
+  const shapes = Object.entries(SHAPE_NAMES).map(([v, l]) => `<option value="${v}"${!item.br && item.shape === v ? " selected" : ""}>${l}</option>`).join("")
+    + (item.br ? `<option value="" selected>Shape from the file</option>` : "");
+  const groupOpts = b.groups.map((g) => `<option value="${esc(g.id)}"${item.group === g.id ? " selected" : ""}>${esc(g.label || "Group")}</option>`).join("");
+  el.innerHTML = `<div class="ihead"><span class="kind">Box</span><span class="muted">Double-click a box to rename it</span></div>
+    <label class="f">Name<input type="text" data-f="label" value="${esc(item.label)}"></label>
+    <label class="f">More lines<textarea data-f="sub" rows="${Math.min(4, Math.max(1, item.sub.split("\n").length))}" placeholder="optional: tool, system or detail">${esc(item.sub)}</textarea></label>
+    <div class="grid2">
+      <label class="f">Shape<select data-f="shape">${shapes}</select></label>
+      <label class="f">Group<select data-f="group"><option value="">No group</option>${groupOpts}<option value="__new">New group</option></select></label>
+    </div>
+    ${arrows.length ? `<div class="arrows">${arrows.join("")}</div>` : ""}
+    <div class="iacts"><button data-act="connect">Draw an arrow from here</button><button data-act="delete">Delete box</button></div>`;
+}
+
+function renderDiscovery() {
+  const sk = cr.sk;
+  const html = DISCOVERY.map((sec) => {
+    const filled = sec.fields.filter(([f]) => (sk.discovery[`${sec.id}.${f}`] || "").trim()).length;
+    const first = (sk.discovery[`${sec.id}.${sec.fields[0][0]}`] || "").trim();
+    const fields = sec.fields.map(([f, label, ph, multi]) => {
+      const k = `${sec.id}.${f}`, v = esc(sk.discovery[k] || "");
+      return `<label>${esc(label)}${multi ? `<textarea data-d="${k}" rows="2" placeholder="${esc(ph)}">${v}</textarea>` : `<input type="text" data-d="${k}" value="${v}" placeholder="${esc(ph)}">`}</label>`;
+    }).join("");
+    const pains = sec.pains ? `<div class="dpains">${sk.pains.length ? sk.pains.map((p) => `<div><b>${esc(p.id)}</b>${esc(p.text || "not written yet")}${p.cost ? ` <span class="muted">(${esc(p.cost)})</span>` : ""}</div>`).join("") : '<span class="muted">No pains yet.</span>'}<div><button data-act="to-pains">Edit pains</button></div></div>` : "";
+    return `<details class="dsec" data-sec="${sec.id}"${cr.open[sec.id] ? " open" : ""}><summary><span class="st">${esc(sec.title)}</span><span class="sum">${esc(first)}</span><span class="fill${filled === sec.fields.length ? " done" : ""}">${filled}/${sec.fields.length}</span></summary><div class="dbody">${pains}${fields}</div></details>`;
+  }).join("");
+  $("tab-discovery").innerHTML = `<div class="chead"><h3>Technical discovery</h3><p>Ask before you draw. Fill in what you hear, and label what you assume.</p></div>
+    <div class="dtools"><button data-act="expand">Expand all</button><button data-act="collapse">Collapse all</button></div>${html}`;
+}
+function updateDiscoverySummary(sec) {
+  const d = DISCOVERY.find((x) => x.id === sec), el = $("tab-discovery").querySelector(`details[data-sec="${sec}"]`);
+  if (!d || !el) return;
+  const filled = d.fields.filter(([f]) => (cr.sk.discovery[`${sec}.${f}`] || "").trim()).length;
+  const fill = el.querySelector(".fill");
+  fill.textContent = `${filled}/${d.fields.length}`; fill.classList.toggle("done", filled === d.fields.length);
+  el.querySelector(".sum").textContent = (cr.sk.discovery[`${sec}.${d.fields[0][0]}`] || "").trim();
+}
+
+function renderPains() {
+  const sk = cr.sk;
+  const where = (pid, key) => (sk.boards[key] ? sk.boards[key].steps.map((t, i) => (t.pains.includes(pid) ? displayKey(stepKey(key, i)) || "?" : "")).filter(Boolean) : []);
+  const fileWhere = (pid) => sk.slots.map((key) => { const k = where(pid, key); return k.length ? `${k.join(", ")} (${boardLabel(sk, key)})` : ""; }).filter(Boolean);
+  $("tab-pains").innerHTML = `<div class="chead"><h3>Pains</h3><p>Write each pain in the speaker's words, with what it costs. Then pin it to the as-is step where it happens.</p></div>
+    <ol class="plist">${sk.pains.map((p) => {
+      const a = where(p.id, "asis"), t = where(p.id, "tobe");
+      return `<li data-p="${esc(p.id)}"${cr.pain === p.id ? ' class="on"' : ""}><span class="ptoken" title="Show this pain in the diagram">${esc(p.id)}</span><div class="pbody">
+        <input type="text" data-pf="text" value="${esc(p.text)}" placeholder="What hurts, in their words">
+        <input type="text" data-pf="cost" value="${esc(p.cost)}" placeholder="What it costs, e.g. ~2 days per request">
+        ${sk.source ? `<div class="pstatus">${fileWhere(p.id).length ? `Tagged on steps ${fileWhere(p.id).join("; ")}` : "Not tagged on a step yet"}.</div>` : `<div class="pstatus">${a.length ? `Happens at ${a.join(", ")}` : "Not pinned to an as-is step yet"}. ${t.length ? `Removed by ${t.join(", ")}` : "Not removed yet"}.</div>`}</div>
+        <button class="icon" data-act="del-pain" title="Delete pain" aria-label="Delete pain">×</button></li>`;
+    }).join("")}</ol><button class="add" data-act="add-pain">Add pain</button>`;
+}
+function addPain() {
+  const n = Math.max(0, ...cr.sk.pains.map((p) => parseInt(p.id.slice(1), 10) || 0)) + 1;
+  change((sk) => sk.pains.push({ id: "P" + n, text: "", cost: "", measure: "" }));
+  $("tab-pains").querySelector(`li[data-p="P${n}"] input`)?.focus();
+}
+
+function boxChips(t) {
+  const b = board(), name = (id) => b.nodes.find((n) => n.id === id)?.label || b.groups.find((g) => g.id === id)?.label || "Box";
+  return [...t.nodes, ...(t.over || [])].map((id) => `<span class="bchip">${esc(name(id))}</span>`).join("") || '<span class="muted">none yet</span>';
+}
+function renderStepsTab() {
+  const b = board(), file = isFile(b), tobe = cr.board === "tobe" && !file, sk = cr.sk;
+  const painBtns = (t) => sk.pains.length
+    ? sk.pains.map((p) => `<button class="pchip" data-act="toggle-pain" data-p="${esc(p.id)}" aria-pressed="${t.pains.includes(p.id)}" title="${esc(p.text || p.id)}">${esc(p.id)}</button>`).join("")
+    : '<span class="muted">Add pains in the Pains tab</span>';
+  const field = (t, f, ph) => `<input type="text" data-sf="${f}" value="${esc(t[f])}" placeholder="${ph}">`;
+  const cell = (t, c, ph) => `<input type="text" data-sc="${c}" value="${esc(t.cells[c] || "")}" placeholder="${esc(ph)}" aria-label="${esc(ph)}">`;
+  const cards = b.steps.map((t, i) => {
+    const key = stepKey(cr.board, i);
+    const head = file ? cell(t, b.nameCol, b.header[b.nameCol] || "Step") : field(t, "name", tobe ? "What the workflow does" : "What happens today");
+    const fields = file
+      ? `<div class="sfields tobe"><label class="cf">${esc(b.header[b.keyCol] || "Key")}${cell(t, b.keyCol, "Key")}</label>${b.header.map((h, c) => (c === b.keyCol || c === b.nameCol ? "" : `<label class="cf">${esc(h || "Column")}${cell(t, c, h)}</label>`)).join("")}</div>`
+      : tobe ? `<div class="sfields owned">${field(t, "owner", "Owner, e.g. a team or system")}${field(t, "what", "What happens, in one sentence")}</div>`
+      : `<div class="sfields">${field(t, "who", "Who")}${field(t, "tool", "Tool")}${field(t, "wait", "Wait, e.g. 2 days")}</div>`;
+    return `<li class="scard${i === cr.active ? " active" : ""}" data-i="${i}">
+      <div class="srow"><span class="token" title="${esc(key)}">${esc(displayKey(key) || "?")}</span>${head}
+        <span class="sbtns"><button data-act="up" title="Move up" aria-label="Move up">↑</button><button data-act="down" title="Move down" aria-label="Move down">↓</button><button data-act="del-step" title="Delete step" aria-label="Delete step">×</button></span></div>
+      ${fields}
+      <div class="chips2"><span class="lbl">${file ? "Pains" : tobe ? "Removes" : "Pain here"}</span>${painBtns(t)}</div>
+      <div class="chips2"><span class="lbl">Boxes</span><span class="blist">${boxChips(t)}</span><button class="linkbtn" data-act="link" aria-pressed="${i === cr.linking}">${i === cr.linking ? "Done" : "Link boxes"}</button></div>
+    </li>`;
+  }).join("");
+  const title = file ? b.tableHeading || "Steps" : BOARDS[cr.board].steps;
+  const help = file ? "The step table from the file. Edit any cell, link each step to its boxes, and tag the pains it touches." : tobe ? "The proposed process, in order. Tag every step with the pain it removes." : "The process today, in order. Pin each pain to the step where it happens.";
+  $("tab-steps").innerHTML = `<div class="chead"><h3>${esc(title)}</h3><p>${help}</p></div>
+    <ol class="slist">${cards}</ol><button class="add" data-act="add-step">Add step</button>${tobe ? painCheck() : ""}`;
+}
+function painCheck() {
+  const sk = cr.sk, steps = sk.boards.tobe.steps;
+  if (!sk.pains.length && !steps.length) return "";
+  const fixes = (pid) => steps.map((t, i) => (t.pains.includes(pid) ? i : -1)).filter((i) => i >= 0);
+  const warns = [
+    ...sk.pains.filter((p) => !fixes(p.id).length).map((p) => `<li><b>${esc(p.id)}</b> is not removed by any step.</li>`),
+    ...steps.map((t, i) => (t.pains.length ? "" : `<li>Step <b>${esc(displayKey(stepKey("tobe", i)))}</b> removes no pain. Is it a guardrail, or can it go?</li>`)).filter(Boolean),
+  ];
+  const rows = sk.pains.map((p) => {
+    const f = fixes(p.id);
+    return `<div class="scorerow"><span class="ptoken">${esc(p.id)}</span><div><div class="ptext">${esc(p.text || "Not written yet")}</div>
+      <div class="fix">${f.length ? "Removed by " + f.map((i) => `<b>${esc(displayKey(stepKey("tobe", i)))}</b> ${esc(steps[i].name)}`).join(", ") : "Not removed yet"}</div>
+      <input type="text" data-pm="${esc(p.id)}" value="${esc(p.measure)}" placeholder="How the pilot measures it, e.g. re-asks per request"></div></div>`;
+  }).join("");
+  return `<section class="check"><h3>Pain check</h3>${warns.length ? `<ul class="warns">${warns.join("")}</ul>` : '<p class="ok">Every pain has a step that removes it, and every step removes a pain.</p>'}${rows}</section>`;
+}
+function markActiveStep() {
+  $("tab-steps").querySelectorAll(".scard").forEach((li) => li.classList.toggle("active", +li.dataset.i === cr.active));
+}
+
+/* --- Switching between Edit and Present, and opening sketches --- */
+
+function openSketch(sk) {
+  if (cr.sk && cr.saveT) saveSketch();
+  const fresh = !sk.log && !sk.source && sk.created === sk.updated;
+  const intact = ensureLog(sk);
+  if (fresh) sk.log.start = "Started this sketch";
+  cr.sk = sk; cr.preview = null; cr.logPrev = cr.logEntry = null;
+  Object.assign(cr, { undo: [], redo: [], sel: null, pain: null, connect: null, linking: -1, active: -1, lastKey: "", autoDir: {} });
+  const last = (cr.boards || {})[sk.id];
+  cr.board = sk.slots.includes(last) ? last : sk.slots[0];
+  migrateOwners();
+  saveSketch(); renderCreator(); scheduleDraw(true);
+  if (!intact) showSaved("History restarted: the saved one did not match", true);
+}
+// Owners of proposed steps used to be Bot, Build or Human. They become text, as a logged change, so the diff log still matches.
+function migrateOwners() {
+  const sk = cr.sk;
+  if (sk.v >= 3 || !Object.values(sk.boards).some((b) => b.steps.some((t) => OLD_OWNERS[t.owner]))) return;
+  change(() => Object.values(sk.boards).forEach((b) => b.steps.forEach((t) => { if (OLD_OWNERS[t.owner]) t.owner = OLD_OWNERS[t.owner]; })), { ui: false });
+  cr.undo = [];
+}
+function setModeButton() {
+  const b = $("modeBtn");
+  b.textContent = cr.on ? "Present" : "Edit";
+  b.classList.toggle("primary", cr.on);
+  b.title = cr.on ? "Show this in the viewer, with the steps to click through" : "Edit what is shown here, or start a sketch";
+}
+function enterEdit(sketch) {
+  loadUi();
+  cr.on = true; state.creating = true; state.sketchView = false;
+  document.body.classList.add("creating");
+  $("cbar").hidden = false; $("quick").hidden = false;
+  setModeButton();
+  lsSet(SK_ON, "on");
+  navigator.storage?.persist?.().catch(() => {});
+  stopPlay(); clearAll();
+  state.live = false; setLive("Editing", false);
+  openSketch(sketch || loadSketch(lsGet(SK_ACTIVE)) || loadSketch(listSketches().find((e) => e.ok)?.id) || newSketch());
+}
+function exitEdit(show = true) {
+  if (!cr.on) return;
+  if (cr.saveT) saveSketch();
+  clearTimeout(cr.drawT);
+  cr.on = false; state.creating = false; cr.connect = null; cr.linking = -1;
+  document.body.classList.remove("creating", "connecting", "linking");
+  $("cbar").hidden = true; $("quick").hidden = true; $("cbanner").hidden = true;
+  closeMenu(); closeActions(); closeLoad();
+  setModeButton();
+  lsSet(SK_ON, "off");
+  if (!show) return;
+  // Present: the sketch stays loaded in the viewer, on the board that was open.
+  cr.preview = null;
+  const { md, diagrams } = sketchMarkdown(cr.sk, { diffs: true });
+  Object.assign(state, { text: md, name: fileName(cr.sk), live: false, sketchView: true, sel: -1, comp: null, relayout: true });
+  state.forcedDiagram = diagrams[cr.board] ?? null;
+  setLive(cr.sk.source ? `Edited copy of ${cr.sk.source.name}` : `Sketch: ${cr.sk.title || "Untitled sketch"}`, false);
+  render();
+}
+// A sketch that was stored inside a file: prefer the browser's copy when it has newer changes, if the user agrees.
+async function openEmbedded(sk) {
+  const local = loadSketch(sk.id);
+  let use = sk;
+  if (local && local.updated > sk.updated) {
+    use = await ask("Newer changes in this browser", `This browser has changes to <b>${esc(local.title || "Untitled sketch")}</b> that are newer than the file.`,
+      [{ label: "Keep the browser's version", value: local, primary: true }, { label: "Use the file's version", value: sk }]);
+    if (!use) return;
+  }
+  if (cr.on) openSketch(use); else enterEdit(use);
+}
+// Edit what is open in the viewer: a sketch stored in the file, or a copy of the file's diagrams and tables.
+async function editText(text, name) {
+  const emb = embeddedSketch(text);
+  if (emb?.sk) {
+    if (emb.intact) return openEmbedded(emb.sk);
+    const pick = await ask("This file was changed after it was exported", "It still carries the sketch it was exported from, but its text is different now.",
+      [{ label: "Edit the file as it is now", value: "text", primary: true }, { label: "Open the exported sketch", value: "sketch" }]);
+    if (!pick) return;
+    if (pick === "sketch") return openEmbedded(emb.sk);
+  }
+  const src = stripSketch(text), h = fnv(src);
+  const prev = listSketches().find((e) => e.ok && e.hash === h && e.source === name);
+  if (prev) {
+    const pick = await ask("You already edited a copy of this file", `<b>${esc(name)}</b> has a copy in this browser, last changed ${esc(new Date(prev.updated).toLocaleString())}.`,
+      [{ label: "Continue with that copy", value: "old", primary: true }, { label: "Start a new copy", value: "new" }]);
+    if (!pick) return;
+    if (pick === "old") { const sk = loadSketch(prev.id); if (cr.on) openSketch(sk); else enterEdit(sk); return; }
+  }
+  const res = sketchFromDoc(src, name);
+  if (res.error) {
+    await ask("Nothing to edit in this file", esc(res.error), [{ label: "Start a new sketch instead", value: "new", primary: true }, { label: "Cancel", value: null }])
+      .then((v) => { if (v === "new") { if (cr.on) openSketch(newSketch()); else enterEdit(newSketch()); } });
+    return;
+  }
+  const check = await checkImport(res.sketch);
+  if (check) {
+    const go = await ask("The editable copy differs from the file", `${esc(check)} Editing it could change the diagram. The file itself stays as it is.`,
+      [{ label: "Edit anyway", value: true }, { label: "Cancel", value: false, primary: true }]);
+    if (!go) return;
+  }
+  if (cr.on) openSketch(res.sketch); else enterEdit(res.sketch);
+  if (res.skipped.length) showSaved(`Not editable: ${res.skipped.join(", ")}`, true);
+}
+// Draw each diagram from the file and from the editable copy, and compare what they contain.
+async function checkImport(sk) {
+  const doc = parseMarkdown(sk.source.text);
+  try {
+    await document.fonts.load(`${BOX_FONT}px "IBM Plex Sans"`).catch(() => null);
+    initMermaid();
+    const count = (svgText) => {
+      const host = document.createElement("div");
+      host.innerHTML = svgText;
+      const q = (sel) => host.querySelectorAll(sel).length;
+      const labels = [...host.querySelectorAll("g.node")].map((n) => n.textContent.replace(/\s+/g, "")).sort().join("|");
+      return { boxes: q("g.node"), groups: q("g.cluster"), arrows: q(".edgePaths path, path.flowchart-link"), labels };
+    };
+    for (const key of sk.slots) {
+      const a = count((await mermaid.render(`vwk${++cr.dirSeq}`, doc.diagrams[sk.boards[key].diagram].src)).svg);
+      const b = count((await mermaid.render(`vwk${++cr.dirSeq}`, boardMermaid(sk, key).src)).svg);
+      if (a.boxes !== b.boxes || a.groups !== b.groups || a.arrows !== b.arrows) return `In "${boardLabel(sk, key)}", the file draws ${a.boxes} boxes, ${a.groups} groups and ${a.arrows} arrows, the copy ${b.boxes}, ${b.groups} and ${b.arrows}.`;
+      if (a.labels !== b.labels) return `In "${boardLabel(sk, key)}", some box labels read differently.`;
+    }
+  } catch (err) { return `The copy could not be drawn (${String(err.message || err).slice(0, 120)}).`; }
+  return "";
+}
+function editCurrent() {
+  if (state.sketchView && cr.sk) return enterEdit(cr.sk);
+  if (state.text) return editText(state.text, state.name || "file.md");
+  enterEdit();
+}
+function exportMd() {
+  saveSketch();
+  const { md } = sketchMarkdown(cr.sk, { diffs: true }), name = fileName(cr.sk);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([md], { type: "text/markdown;charset=utf-8" }));
+  a.download = name;
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  showSaved(`Exported ${name}`);
+}
+async function copyMd() {
+  saveSketch();
+  try { await navigator.clipboard.writeText(sketchMarkdown(cr.sk, { diffs: true }).md); showSaved("Markdown copied"); }
+  catch { showSaved("Copy failed: use Export .md", true); }
+}
+
+/* --- Load menu: the sketches saved in this browser --- */
+
+function openLoad() {
+  const m = $("loadMenu"), all = listSketches();
+  const when = (t) => (t ? new Date(t).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "");
+  m.innerHTML = all.length ? `<div class="mh">Saved in this browser</div>` + all.map((e) => `<button role="menuitemradio" data-id="${esc(e.id)}" aria-checked="${e.id === cr.sk?.id}"${e.ok ? "" : " disabled"}>
+      <span class="tick">${e.id === cr.sk?.id ? "✓" : ""}</span><span class="li"><span class="lt">${esc(e.title || "Untitled sketch")}</span>
+      <span class="ls">${e.ok ? esc([e.source ? `Copy of ${e.source}` : "Sketch", when(e.updated)].filter(Boolean).join(", ")) : "Damaged, can't be opened"}</span></span></button>`).join("")
+    : `<div class="mh">No saved sketches yet</div>`;
+  const r = $("loadBtn").getBoundingClientRect();
+  m.hidden = false;
+  m.style.top = `${r.bottom + 6}px`; m.style.left = `${Math.min(r.left, innerWidth - m.offsetWidth - 8)}px`;
+  $("loadBtn").setAttribute("aria-expanded", "true");
+  m.querySelector("button:not(:disabled)")?.focus();
+}
+function closeLoad() { $("loadMenu").hidden = true; $("loadBtn").setAttribute("aria-expanded", "false"); }
+
+/* --- Wiring --- */
+
+$("modeBtn").addEventListener("click", () => (cr.on ? exitEdit() : editCurrent()));
+// New and Load work from Present too: they open the sketch in Edit mode.
+$("newBtn").addEventListener("click", () => { if (cr.on) openSketch(newSketch()); else enterEdit(newSketch()); $("sketchTitle").focus(); });
+$("loadBtn").addEventListener("click", () => ($("loadMenu").hidden ? openLoad() : closeLoad()));
+$("loadMenu").addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-id]");
+  if (!btn || btn.disabled) return;
+  closeLoad();
+  if (cr.on && btn.dataset.id === cr.sk?.id) return;
+  const sk = loadSketch(btn.dataset.id);
+  if (!sk) return cr.on ? showSaved("That sketch could not be read", true) : showMessage("That sketch could not be read", "<p>It is damaged. Pick another one from <b>Load</b>.</p>");
+  if (cr.on) openSketch(sk); else enterEdit(sk);
+});
+$("undoBtn").addEventListener("click", () => history(-1));
+$("redoBtn").addEventListener("click", () => history(1));
+// The Actions menu: adding to the board, layout, sharing, and the sketch itself.
+function openActions() {
+  const b = board(), dir = b.dir, pinned = Object.keys(b.pos).length;
+  const item = (act, label, key = "", extra = "") => `<button role="menuitem" data-act="${act}"${extra}><span class="tick"></span>${label}${key ? `<kbd>${key}</kbd>` : ""}</button>`;
+  const radio = (v, label) => `<button role="menuitemradio" data-act="dir" data-v="${v}" aria-checked="${dir === v}"><span class="tick">${dir === v ? "✓" : ""}</span>${label}</button>`;
+  const m = $("actionsMenu");
+  m.innerHTML = `<div class="mh">Add to ${esc(boardLabel(cr.sk, cr.board))}</div>
+    ${Object.entries(SHAPE_NAMES).map(([v, l]) => item("shape", esc(l), v === (cr.shape || "box") ? "N" : "", ` data-v="${v}"`)).join("")}
+    ${item("group", "Group", "G")}${item("connect", cr.connect ? "Stop connecting" : "Connect two boxes", "C")}
+    <hr><div class="mh">Layout</div>
+    ${isFile(b) ? "" : radio("AUTO", "Auto direction")}${radio("LR", "Left to right")}${radio("TD", "Top down")}
+    ${item("reset", "Reset positions", "", pinned ? "" : " disabled")}
+    <hr><div class="mh">Share</div>
+    ${item("copy", "Copy Markdown")}${item("export", cr.sk.source ? "Export the edited copy (.md)" : "Export .md")}
+    <hr>${item("delete", `<span class="danger">Delete ${cr.sk.source ? "this copy" : "this sketch"}</span>`)}`;
+  const r = $("actionsBtn").getBoundingClientRect();
+  m.hidden = false;
+  m.style.top = `${r.bottom + 6}px`;
+  m.style.left = `${Math.min(r.left, innerWidth - m.offsetWidth - 8)}px`;
+  $("actionsBtn").setAttribute("aria-expanded", "true");
+  m.querySelector("button:not(:disabled)")?.focus();
+}
+function closeActions() { $("actionsMenu").hidden = true; $("actionsBtn").setAttribute("aria-expanded", "false"); }
+async function deleteSketch() {
+  const go = await ask(`Delete "${cr.sk.title || "Untitled sketch"}"?`, `It is removed from this browser. ${cr.sk.source ? `The file ${esc(cr.sk.source.name)} is not affected.` : "Export it first if you want to keep it."}`,
+    [{ label: "Delete", value: true, danger: true }, { label: "Cancel", value: false, primary: true }]);
+  if (!go) return;
+  const id = cr.sk.id;
+  clearTimeout(cr.saveT); cr.saveT = 0;
+  lsDel(SK_PREFIX + id);
+  if (lsGet(SK_ACTIVE) === id) lsDel(SK_ACTIVE);
+  cr.sk = null;
+  openSketch(loadSketch(listSketches().find((e) => e.ok)?.id) || newSketch());
+}
+$("actionsBtn").addEventListener("click", () => ($("actionsMenu").hidden ? openActions() : closeActions()));
+$("actionsMenu").addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn || btn.disabled) return;
+  closeActions();
+  const a = btn.dataset.act, v = btn.dataset.v;
+  if (a === "shape") addBox(v);
+  else if (a === "group") addGroup();
+  else if (a === "connect") toggleConnect();
+  // Positions belong to one direction, so changing it lets the layout place every box again.
+  else if (a === "dir" && board().dir !== v) change((sk, b) => { b.dir = v; b.pos = {}; }, { layout: true });
+  else if (a === "reset") change((sk, b) => { b.pos = {}; }, { layout: true });
+  else if (a === "copy") copyMd();
+  else if (a === "export") exportMd();
+  else if (a === "delete") deleteSketch();
+});
+$("boardSeg").addEventListener("click", (e) => {
+  const key = e.target.closest("[data-board]")?.dataset.board;
+  if (!key || key === cr.board || !cr.sk.boards[key]) return;
+  Object.assign(cr, { board: key, sel: null, connect: null, linking: -1, active: -1 });
+  storeUi(); renderCreator(); scheduleDraw(true);
+});
+$("sketchTitle").addEventListener("input", (e) => change((sk) => { sk.title = e.target.value; }, { key: "title", ui: false }));
+$("quick").addEventListener("submit", (e) => { e.preventDefault(); quickAdd($("quickInput").value); $("quickInput").value = ""; });
+$("cbanner").addEventListener("click", (e) => {
+  const a = e.target.closest("[data-act]")?.dataset.act;
+  if (!a) return;
+  if (a === "restore") return restoreState();
+  if (a === "now") return clearPreview();
+  cr.connect = null; cr.linking = -1;
+  renderCreator(); crHighlight();
+});
+for (const id of ["quick", "cbanner"]) $(id).addEventListener("pointerdown", (e) => e.stopPropagation());
+$("notes").addEventListener("input", (e) => change((sk) => { sk.notes = e.target.value; }, { key: "notes", ui: false }));
+document.querySelector("#creator .tabs").addEventListener("click", (e) => {
+  const t = e.target.closest("[data-tab]");
+  if (!t) return;
+  cr.tab = t.dataset.tab; storeUi(); renderCreator();
+});
+
+// Editing a box or group from a file means it is written fresh from now on.
+$("inspector").addEventListener("input", (e) => {
+  const t = e.target, item = findSel();
+  if (!item) return;
+  if (t.dataset.f === "label" || t.dataset.f === "sub") {
+    change(() => { item[t.dataset.f] = t.value; item.raw = null; }, { key: item.id + t.dataset.f, ui: false });
+    if (cr.tab === "steps") $("tab-steps").querySelectorAll(".scard").forEach((li) => { const s = board().steps[+li.dataset.i]; if (s) li.querySelector(".blist").innerHTML = boxChips(s); });
+    if (cr.sel.kind === "group") renderBar();
+  } else if (t.dataset.ef === "label") {
+    const edge = board().edges.find((x) => x.id === t.closest("[data-e]").dataset.e);
+    if (edge) change(() => { edge.label = t.value; edge.labelRaw = null; }, { key: edge.id, ui: false });
+  }
+});
+$("inspector").addEventListener("change", (e) => {
+  const t = e.target, item = findSel();
+  if (!item) return;
+  if (t.dataset.f === "shape" && t.value) change(() => { item.shape = t.value; item.br = null; item.raw = null; }, { layout: true });
+  else if (t.dataset.f === "group") {
+    if (t.value === "__new") {
+      let gid;
+      change((sk, b) => { const g = { id: uid("g"), label: "New group", parent: null, mid: null, raw: null, dir: "" }; b.groups.push(g); item.group = gid = g.id; }, { layout: true });
+      cr.sel = { kind: "group", id: gid };
+      renderInspector(); renderBar(); focusLabel();
+    } else { change(() => { item.group = t.value || null; }, { layout: true }); renderBar(); }
+  } else if (t.dataset.ef === "dashed") {
+    const edge = board().edges.find((x) => x.id === t.closest("[data-e]").dataset.e);
+    if (edge) change(() => { edge.dashed = t.checked; edge.arrow = null; });
+  }
+});
+$("inspector").addEventListener("click", (e) => {
+  const a = e.target.closest("[data-act]")?.dataset.act;
+  if (!a) return;
+  if (a === "delete") deleteSel();
+  else if (a === "connect") { cr.connect = { from: cr.sel.id }; cr.linking = -1; renderBar(); crHighlight(); }
+  else if (a === "box-here") { addBox(undefined, { group: cr.sel.id }); }
+  else if (a === "del-edge") { const id = e.target.closest("[data-e]").dataset.e; change((sk, b) => { b.edges = b.edges.filter((x) => x.id !== id); }, { layout: true }); }
+});
+
+$("tab-diffs").addEventListener("click", (e) => {
+  const a = e.target.closest("[data-act]")?.dataset.act;
+  if (a === "restore") return restoreState();
+  if (a === "now") return clearPreview();
+  const li = e.target.closest(".hrow");
+  if (li) previewState(+li.dataset.i);
+});
+$("tab-diffs").addEventListener("keydown", (e) => {
+  const li = e.target.closest(".hrow");
+  if (!li) return;
+  if (e.key === "Enter") { e.preventDefault(); previewState(+li.dataset.i); }
+  else if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); (e.key === "ArrowDown" ? li.nextElementSibling : li.previousElementSibling)?.focus(); }
+});
+$("tab-discovery").addEventListener("input", (e) => {
+  const k = e.target.dataset.d;
+  if (!k) return;
+  change((sk) => { if (e.target.value) sk.discovery[k] = e.target.value; else delete sk.discovery[k]; }, { key: k, ui: false });
+  updateDiscoverySummary(k.split(".")[0]);
+});
+$("tab-discovery").addEventListener("toggle", (e) => {
+  const sec = e.target.dataset?.sec;
+  if (sec) { cr.open[sec] = e.target.open; storeUi(); }
+}, true);
+$("tab-discovery").addEventListener("click", (e) => {
+  const a = e.target.closest("[data-act]")?.dataset.act;
+  if (a === "expand" || a === "collapse") { DISCOVERY.forEach((d) => { cr.open[d.id] = a === "expand"; }); storeUi(); renderDiscovery(); }
+  else if (a === "to-pains") { cr.tab = "pains"; storeUi(); renderCreator(); }
+});
+
+$("tab-pains").addEventListener("input", (e) => {
+  const f = e.target.dataset.pf, p = cr.sk.pains.find((x) => x.id === e.target.closest("[data-p]")?.dataset.p);
+  if (f && p) change(() => { p[f] = e.target.value; }, { key: p.id + f, ui: false });
+});
+$("tab-pains").addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.dataset.pf) { e.preventDefault(); addPain(); } });
+// Selecting a pain shows where it is in the diagram. Clicking its token again clears it.
+function selectPain(id) {
+  cr.pain = id; if (id) cr.active = -1;
+  $("tab-pains").querySelectorAll(".plist li").forEach((li) => li.classList.toggle("on", li.dataset.p === id));
+  markActiveStep(); crHighlight();
+}
+$("tab-pains").addEventListener("focusin", (e) => { const li = e.target.closest(".plist li"); if (li && e.target.dataset.pf && cr.pain !== li.dataset.p) selectPain(li.dataset.p); });
+$("tab-pains").addEventListener("click", (e) => {
+  const a = e.target.closest("[data-act]")?.dataset.act, li = e.target.closest(".plist li");
+  if (li && !a && !e.target.closest("input")) selectPain(cr.pain === li.dataset.p ? null : li.dataset.p);
+  if (a === "add-pain") addPain();
+  else if (a === "del-pain") {
+    const id = e.target.closest("[data-p]").dataset.p;
+    change((sk) => { sk.pains = sk.pains.filter((p) => p.id !== id); for (const b of Object.values(sk.boards)) b.steps.forEach((t) => { t.pains = (t.pains || []).filter((x) => x !== id); }); }, { layout: true });
+  }
+});
+
+// A new step on a file board gets the next free circled number as its key.
+function nextKey(b) {
+  const used = new Set(b.steps.map((t) => t.key));
+  for (const c of CIRCLED.slice(1)) if (!used.has(c)) return c;
+  for (let n = 21; ; n++) if (!used.has(String(n))) return String(n);
+}
+function addStep(at) {
+  const b = board(), i = at == null ? b.steps.length : at;
+  change((sk, bd) => {
+    if (isFile(bd)) {
+      const key = nextKey(bd), cells = bd.header.map(() => "");
+      cells[bd.keyCol] = key;
+      bd.steps.splice(i, 0, { id: uid("t"), cells, key, rowRaw: null, nodes: [], over: [], pains: [] });
+    } else bd.steps.splice(i, 0, { id: uid("t"), name: "", who: "", tool: "", wait: "", what: "", owner: "", pains: [], nodes: [] });
+  });
+  cr.active = i; markActiveStep(); crHighlight();
+  $("tab-steps").querySelector(`.scard[data-i="${i}"] input`)?.focus();
+}
+$("tab-steps").addEventListener("input", (e) => {
+  const f = e.target.dataset.sf, c = e.target.dataset.sc, pm = e.target.dataset.pm;
+  const t = board().steps[+e.target.closest(".scard")?.dataset.i];
+  if (f && t) change(() => { t[f] = e.target.value; }, { key: t.id + f, ui: false });
+  else if (c != null && t) {
+    const b = board(), col = +c;
+    change(() => { t.cells[col] = e.target.value; t.rowRaw = null; if (col === b.keyCol) t.key = stripMd(e.target.value); }, { key: t.id + "c" + col, ui: false });
+    if (col === b.keyCol) e.target.closest(".scard").querySelector(".token").textContent = displayKey(t.key) || "?";
+  } else if (pm) {
+    const p = cr.sk.pains.find((x) => x.id === pm);
+    if (p) change(() => { p.measure = e.target.value; }, { key: p.id + "m", ui: false });
+  }
+});
+$("tab-steps").addEventListener("keydown", (e) => {
+  const b = board();
+  if (e.key === "Enter" && (e.target.dataset.sf === "name" || (isFile(b) && +e.target.dataset.sc === b.nameCol))) { e.preventDefault(); addStep(+e.target.closest(".scard").dataset.i + 1); }
+});
+$("tab-steps").addEventListener("focusin", (e) => {
+  const li = e.target.closest(".scard");
+  if (li && +li.dataset.i !== cr.active) { cr.active = +li.dataset.i; markActiveStep(); crHighlight(); }
+});
+$("tab-steps").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-act]"), li = e.target.closest(".scard");
+  if (!btn) { if (li && +li.dataset.i !== cr.active) { cr.active = +li.dataset.i; markActiveStep(); crHighlight(); } return; }
+  const a = btn.dataset.act, i = li ? +li.dataset.i : -1, b = board(), t = b.steps[i];
+  if (a === "add-step") return addStep();
+  if (!t) return;
+  if (a === "up" || a === "down") {
+    const j = a === "up" ? i - 1 : i + 1;
+    if (j < 0 || j >= b.steps.length) return;
+    change((sk, bd) => { [bd.steps[i], bd.steps[j]] = [bd.steps[j], bd.steps[i]]; });
+    cr.active = j; markActiveStep(); crHighlight();
+  } else if (a === "del-step") {
+    change((sk, bd) => bd.steps.splice(i, 1), { layout: true });
+    cr.active = -1; cr.linking = -1; crHighlight();
+  } else if (a === "toggle-pain") {
+    const p = btn.dataset.p;
+    change(() => { t.pains = t.pains.includes(p) ? t.pains.filter((x) => x !== p) : [...t.pains, p]; });
+  } else if (a === "link") {
+    cr.linking = cr.linking === i ? -1 : i; cr.active = i; cr.connect = null;
+    renderStepsTab(); renderBar(); crHighlight();
+  }
+});
+
+// Drag a box, or a group with everything in it. On release the new centres are saved as pins.
+function startBoxDrag(e) {
+  const hit = e.target.closest(".node, .cluster"), model = state.model, svg = state.svg;
+  const n = [...model.nodes.values()].find((x) => x.el === hit);
+  if (!n) return;
+  const inside = (id) => { for (let p = model.nodes.get(id)?.parent; p; p = model.nodes.get(p)?.parent) if (p === n.id) return true; return false; };
+  const ids = n.kind === "cluster" ? [...model.nodes.values()].filter((m) => m.kind === "node" && inside(m.id)).map((m) => m.id) : [n.id];
+  if (!ids.length) return;
+  const start = ids.map((id) => ({ id, ...centre(userBox(svg, model.nodes.get(id).el)) }));
+  const from = { x: e.clientX, y: e.clientY };
+  let moved = false;
+  const move = (ev) => {
+    const dx = ev.clientX - from.x, dy = ev.clientY - from.y;
+    if (!moved && Math.hypot(dx, dy) < 4) return;
+    if (!moved) { moved = true; document.body.classList.add("dragging-box"); closeMenu(); }
+    const upp = cam.cur.w / paneSize().w;
+    for (const s of start) moveNodeTo(svg, model.nodes.get(s.id).el, s.x + dx * upp, s.y + dy * upp);
+    settleAround(svg, model, new Set(ids), false);
+  };
+  const up = () => {
+    removeEventListener("pointermove", move); removeEventListener("pointerup", up);
+    document.body.classList.remove("dragging-box");
+    if (!moved || state.svg !== svg) return;
+    cr.justDragged = true; setTimeout(() => { cr.justDragged = false; }, 0);
+    const done = ids.map((id) => [cr.idMap.get(id), centre(userBox(svg, model.nodes.get(id).el))]).filter(([id]) => id);
+    change((sk, b) => {
+      // Pinned boxes need a fixed direction, or the next layout would turn the board around them.
+      if (b.dir === "AUTO") b.dir = cr.autoDir[cr.board] || "LR";
+      for (const [id, c] of done) b.pos[id] = { x: Math.round(c.x), y: Math.round(c.y) };
+    }, { ui: false });
+    cr.camMoved = true;
+  };
+  addEventListener("pointermove", move); addEventListener("pointerup", up);
+}
+
+// Edit-mode keys. Returns true when the key is handled here, so the viewer's own keys don't run.
+function createKey(e) {
+  if (!cr.on) return false;
+  if ($("askDlg").open) return true;
+  const inField = !!e.target.closest("select, input, textarea"), mod = e.metaKey || e.ctrlKey;
+  if (mod && !inField && (e.key === "z" || e.key === "Z" || e.key === "y")) { e.preventDefault(); history(e.key === "y" || e.shiftKey ? 1 : -1); return true; }
+  if (e.key === "Escape") {
+    if (cr.preview && !inField) { clearPreview(); return true; }
+    if (cr.connect || cr.linking >= 0) { cr.connect = null; cr.linking = -1; renderCreator(); crHighlight(); }
+    else if (inField) e.target.blur();
+    else crDeselect();
+    return true;
+  }
+  if (inField || mod || e.altKey) return true;
+  const k = e.key.toLowerCase();
+  if (k === "n") addBox();
+  else if (k === "g") addGroup();
+  else if (k === "c") toggleConnect();
+  else if (e.key === "Delete" || e.key === "Backspace") deleteSel();
+  else if (e.key === "Enter") focusLabel();
+  else if (e.key === "/") $("quickInput").focus();
+  else if (k === "f") { cr.camMoved = false; if (cam.full) animateTo(overview()); }
+  else if (e.key === "+" || e.key === "=") zoomBy(1.25);
+  else if (e.key === "-") zoomBy(0.8);
+  else return true;
+  e.preventDefault();
+  return true;
+}
+addEventListener("pagehide", () => { if (cr.on && cr.saveT) saveSketch(); });
+
+// Right-click menu on the canvas. Mermaid places the new shape, so it lands where the layout puts it, not under the cursor.
+function closeMenu() { $("ctxmenu").hidden = true; }
+$("diagramPane").addEventListener("contextmenu", (e) => {
+  if (!cr.on || e.target.closest("#quick, #cbanner, #minimap")) return;
+  e.preventDefault();
+  if (cr.preview) return;
+  const hit = e.target.closest(".node, .cluster");
+  const slug = hit && [...(state.model?.nodes.values() || [])].find((n) => n.el === hit)?.id;
+  const id = slug && cr.idMap.get(slug), b = board();
+  const node = id && b.nodes.find((n) => n.id === id), group = id && b.groups.find((g) => g.id === id);
+  const shapes = (verb) => Object.entries(SHAPE_NAMES).map(([v, l]) => `<button role="menuitem" data-shape="${v}">${verb} ${esc(l.toLowerCase().replace("🔒", "").trim())}${v === "gate" ? " 🔒" : ""}</button>`).join("");
+  let html;
+  if (node) {
+    cr.sel = { kind: "node", id }; renderInspector(); crHighlight();
+    html = `<div class="mh">${esc(node.label || "Box")}</div>${shapes("Add a connected")}<hr>
+      <button role="menuitem" data-act="connect">Draw an arrow from here</button><button role="menuitem" data-act="rename">Rename</button>${b.pos[id] ? '<button role="menuitem" data-act="unpin">Reset position</button>' : ""}<button role="menuitem" data-act="delete">Delete box</button>`;
+  } else if (group) {
+    cr.sel = { kind: "group", id }; renderInspector(); crHighlight();
+    html = `<div class="mh">In ${esc(group.label || "group")}</div>${shapes("Add a")}<hr><button role="menuitem" data-act="rename">Rename group</button><button role="menuitem" data-act="delete">Delete group</button>`;
+  } else {
+    html = `${shapes("Add a")}<hr><button role="menuitem" data-act="group">Add a group</button>`;
+  }
+  const m = $("ctxmenu");
+  m.innerHTML = html; m.hidden = false;
+  m.dataset.node = node ? id : ""; m.dataset.group = group ? id : "";
+  const r = $("diagramPane").getBoundingClientRect(), w = m.offsetWidth, h = m.offsetHeight;
+  m.style.left = Math.min(e.clientX - r.left, r.width - w - 8) + "px";
+  m.style.top = Math.min(e.clientY - r.top, r.height - h - 8) + "px";
+  m.querySelector("button")?.focus();
+});
+$("ctxmenu").addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  const m = $("ctxmenu"), node = m.dataset.node, group = m.dataset.group;
+  closeMenu();
+  if (btn.dataset.shape) {
+    const from = node || null;
+    const g = group || null;
+    return addBox(btn.dataset.shape, { group: g, from });
+  }
+  const a = btn.dataset.act;
+  if (a === "connect") { cr.connect = { from: node }; cr.linking = -1; renderBar(); crHighlight(); }
+  else if (a === "rename") focusLabel();
+  else if (a === "delete") deleteSel();
+  else if (a === "group") addGroup();
+  else if (a === "unpin") change((sk, b) => { delete b.pos[node]; }, { layout: true });
+});
+for (const m of document.querySelectorAll(".menu")) {
+  m.addEventListener("pointerdown", (e) => e.stopPropagation());
+  m.addEventListener("keydown", (e) => {
+    const items = [...m.querySelectorAll("button:not(:disabled)")], i = items.indexOf(document.activeElement);
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); e.stopPropagation(); items[(i + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length]?.focus(); }
+    else if (e.key === "Escape") { e.stopPropagation(); closeMenu(); closeActions(); closeLoad(); }
+  });
+}
+addEventListener("pointerdown", (e) => { if (!e.target.closest(".menu, #actionsBtn, #loadBtn")) { closeMenu(); closeActions(); closeLoad(); } });
+addEventListener("blur", () => { closeMenu(); closeActions(); closeLoad(); });
+addEventListener("resize", () => { closeActions(); closeLoad(); });
+
 updateProgress();
 await useLayout(storedLayout() || "dagre");
 try { if (localStorage.getItem("vw-mode") === "overview") { state.mode = "overview"; $("modeDetail").setAttribute("aria-pressed", "false"); $("modeOverview").setAttribute("aria-pressed", "true"); } } catch { /* private mode */ }
@@ -1173,8 +3463,10 @@ if (!(await loadFromServer())) {
   showMessage("Load a Markdown file",
     "<p>Start the server with <code>python3 serve.py path/to/file.md</code> and open the address it prints, or drop a Markdown file here.</p>" +
     "<p>The file needs a <code>```mermaid</code> diagram and a step table. The format is described in <code>format_specification.md</code>.</p>" +
-    '<button onclick="document.getElementById(\'fileInput\').click()">Open file</button>');
+    '<p>Or sketch one: <b>New</b> captures discovery, pains, the process today and the proposed architecture. <b>Load</b> reopens a sketch saved in this browser.</p>' +
+    '<button onclick="document.getElementById(\'fileInput\').click()">Open file</button> <button onclick="document.getElementById(\'newBtn\').click()">Start a new sketch</button> <button onclick="document.getElementById(\'loadBtn\').click()">Load a saved sketch</button>');
 }
+if (lsGet(SK_ON) === "on") enterEdit();
 setInterval(poll, 1500);
 </script>
 </body>

@@ -21,7 +21,7 @@ Everything else in the file (prose, other tables, other code blocks) is allowed 
 | Nearest heading above the diagram | Subtitle |
 | Nearest heading above the step table | Title of the step list |
 
-If the file contains several diagrams or tables, the viewer picks the diagram, table and key column that match best (section 4), and it shows dropdowns to switch between them.
+If the file contains several diagrams, the viewer opens the one whose step table matches best. It pairs each diagram with its own step table (section 4), so you choose only the diagram. A dropdown for that appears when more than one diagram has a matching table.
 
 ## 2. The diagram
 
@@ -63,7 +63,7 @@ For every combination of diagram, table and column, the viewer collects the cell
 
 > **number of distinct matching keys × share of the table's rows that match**
 
-The highest score wins, and **at least 2 distinct keys** must match. Real step keys are distinct, and almost every row matches. A column such as "Environment" repeats the same value (`E1`, `E1`, …) and matches only some rows, so it scores low even when `E1` appears in the diagram. If a file has several diagrams, each diagram picks its own best table when you switch to it, so give each diagram its own key set (for example ①-⑭ for one, Ⓐ Ⓑ Ⓒ for another).
+The highest score wins, and **at least 2 distinct keys** must match. The one exception is a one-row table between the diagram and the next one: it is used when its single key appears in the diagram. Each diagram first scores only the tables **between it and the next diagram**. It considers the other tables only when none of those matches. So putting each step table right after its diagram is the simplest way to pair them. Real step keys are distinct, and almost every row matches. A column such as "Environment" repeats the same value (`E1`, `E1`, …) and matches only some rows, so it scores low even when `E1` appears in the diagram. If a file has several diagrams, each diagram picks its own best table when you switch to it, so give each diagram its own key set (for example ①-⑭ for one, Ⓐ Ⓑ Ⓒ for another).
 
 ## 5. What a step highlights
 
@@ -132,7 +132,40 @@ Like `@step`, these are Mermaid comments. Mermaid ignores them, and only the vie
 
 `<group>` is a top-level subgraph id, and `<id>` a node id inside it. Unknown ids are ignored.
 
-## 7. Minimal example
+## 7. Pinned positions
+
+```
+%% @pos SECURITY_REVIEW: 812 455
+```
+
+`%% @pos <node>: <x> <y>` moves a node so that its centre is at that point, in the coordinates of the rendered diagram (the SVG's user space). Its arrows are then drawn as straight lines, and the subgraphs around it are resized to fit their nodes. Edit mode writes these lines when you drag a box, and you rarely need to write them by hand. Mermaid ignores them, so in other Markdown renderers the diagram keeps its automatic layout. Pins apply in Detail mode only: the Overview is always laid out automatically.
+
+## 8. Files made in Edit mode
+
+**A new sketch** is exported in this format:
+- one diagram per board: As-is process, with keys Ⓐ Ⓑ Ⓒ, and Proposed architecture, with ① ② ③
+- each diagram followed by its step table, with the key in the first column
+
+Steps that have no box yet are listed in a `%% Steps without a box yet: …` comment, so the table still matches.
+
+**An edited copy of a file** is that file's text, with each edited diagram and table changed in place. A diagram line keeps its exact text while nothing it defines has changed.
+
+**At the end of the file**, either kind has:
+- a `## Diffs` section listing every change in plain words
+- the sketch itself, with its diff log, as JSON in an HTML comment:
+
+```
+<!-- architecture-viewer-sketch fnv=1a2b3c4d
+{"v":2,"id":"…","title":"…","boards":{…},"log":{"base":{…},"entries":[…]}}
+-->
+```
+
+- **`fnv`** is a fingerprint of everything above the comment. If the text no longer matches it, Edit asks whether to use the file as it is now or the stored sketch.
+- **`log`** holds the first state and one patch per change, so the history can be replayed and any state restored.
+- **Hidden:** Markdown renderers don't show the comment.
+- **Removing it** is safe for viewing: the file still works in the viewer. **Edit** then treats it as an ordinary file and opens a copy, without the history.
+
+## 9. Minimal example
 
 ````markdown
 # Order flow
@@ -163,9 +196,9 @@ flowchart LR
 | Confirm | ④ | Mail | Email sent to the customer |
 ````
 
-## 8. Checklist for authors and assistants
+## 10. Checklist for authors and assistants
 
-- [ ] There is exactly one `mermaid` block with a `flowchart`, or the right one is selected in the dropdown.
+- [ ] Every `mermaid` flowchart that should be walked through has its step table right after it, before the next diagram.
 - [ ] Every table row has a key, and that key appears in at least one node or edge label (or in a `%% @step` line).
 - [ ] Keys are whole tokens: don't glue them to letters or digits unless that's the key itself (`⑫a`).
 - [ ] No other table column contains short tokens that also appear in the diagram, or that column may be picked as the key column instead.
