@@ -19,6 +19,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 INDEX = HERE / "index.html"
+GUIDE = HERE / "guide.html"
+SCREENSHOTS = HERE / "screenshots"
 SAMPLE_SOURCE = HERE / "sample_architecture.md"
 # The project's own architecture when it sits next to the viewer, otherwise the bundled sample.
 DEFAULT_SOURCE = HERE.parent / "architecture.md" if (HERE.parent / "architecture.md").is_file() else SAMPLE_SOURCE
@@ -26,17 +28,29 @@ DEFAULT_SOURCE = HERE.parent / "architecture.md" if (HERE.parent / "architecture
 
 def make_handler(source: Path) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
-        # Only three routes. Nothing else on disk is reachable.
+        # The page, the guide with its screenshots, and the source file. Nothing else on disk is reachable.
         def do_GET(self) -> None:
             path = self.path.split("?", 1)[0]
             if path in ("/", "/index.html"):
                 self.reply(200, "text/html; charset=utf-8", INDEX.read_bytes())
+            elif path == "/guide.html":
+                self.reply(200, "text/html; charset=utf-8", GUIDE.read_bytes())
+            elif path.startswith("/screenshots/") and self.screenshot(path[len("/screenshots/"):]):
+                pass
             elif path == "/api/source":
                 self.reply_source(include_text=True)
             elif path == "/api/mtime":
                 self.reply_source(include_text=False)
             else:
                 self.reply(404, "text/plain; charset=utf-8", b"not found")
+
+        def screenshot(self, name: str) -> bool:
+            # Only a plain .png file name that is listed in screenshots/, so no path can climb out of it.
+            files = {p.name: p for p in SCREENSHOTS.glob("*.png")} if SCREENSHOTS.is_dir() else {}
+            if name not in files:
+                return False
+            self.reply(200, "image/png", files[name].read_bytes())
+            return True
 
         def reply_source(self, include_text: bool) -> None:
             try:

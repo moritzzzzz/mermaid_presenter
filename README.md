@@ -28,7 +28,7 @@ python3 serve.py                                 # ../architecture.md, or the bu
 python3 serve.py path/to/other.md --port 8001 --open
 ```
 
-Then open http://127.0.0.1:8000/. Python 3.10+ standard library, nothing to install. The server serves the page and that one file, and reloads the page within about 2 seconds when the file changes.
+Then open http://127.0.0.1:8000/. The **?** button in the top bar opens the [guide](guide.html) to every feature and to working with AI agents. Python 3.10+ standard library, nothing to install. The server serves the page and that one file, and reloads the page within about 2 seconds when the file changes.
 
 Without the server, open `index.html` in a browser, and use **New**, **Load** or **Open file**, or drop a Markdown file onto it. That works without live reload.
 
@@ -199,7 +199,8 @@ The spec has tested examples, a method for mapping a process, and a checklist. A
 | File | Purpose |
 |---|---|
 | `index.html` | The whole app: discovery, process mapping and architecture editing (Edit mode), and the step-by-step presentation (Present mode) |
-| `serve.py` | Local server: `/` (page), `/api/source` (file text), `/api/mtime` (change polling) |
+| `guide.html` | The guide: every feature, and how to draft sketches with an AI agent on a stack you choose. Opens from the **?** button in the top bar, or with `?` |
+| `serve.py` | Local server: `/` (page), `/guide.html` and `/screenshots/*.png` (guide), `/api/source` (file text), `/api/mtime` (change polling) |
 | `format_specification.md` | How to write a compatible file, for people and AI agents: walkthrough files for architectures, and process sketches (as-is process, pains, proposed architecture), with tested examples and a checklist |
 | `sample_architecture.md` | An architecture walkthrough (fictional bookstore order flow) |
 | `sample_sketch.md` | A sketch exported from Edit mode (deal desk discount approval, synthesized): discovery, pains, both boards with their steps, and the pain scorecard. **Edit** reopens it as a sketch |
@@ -218,6 +219,7 @@ The spec has tested examples, a method for mapping a process, and a checklist. A
 | O | Switch between Detail and Overview |
 | F | Fit the whole diagram |
 | + / − | Zoom in or out |
+| ? | Open the guide in a new tab |
 | Drag | Move the diagram |
 | Pinch, or Ctrl/Cmd + scroll | Zoom at the pointer |
 | Scroll | Move the diagram |

@@ -1,0 +1,452 @@
+<!doctype html>
+<!-- Copyright 2026 Moritz Foerster. SPDX-License-Identifier: Apache-2.0 -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture Viewer Guide</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233b4bd8'/%3E%3Ccircle cx='10' cy='10' r='3.5' fill='white'/%3E%3Ccircle cx='22' cy='22' r='3.5' fill='white'/%3E%3Cpath d='M10 10 L22 10 L22 22' stroke='white' stroke-width='2.5' fill='none'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  // Same theme choice as the viewer (its Light/Dark button), when the browser shares its storage.
+  try { const t = localStorage.getItem("vw-theme"); if (t) document.documentElement.dataset.theme = t; } catch { /* private mode */ }
+</script>
+<style>
+  /* Tokens, shared with index.html. */
+  :root {
+    --canvas: #edf1f6; --panel: #ffffff; --panel-2: #f6f8fb;
+    --ink: #16202e; --ink-2: #4d5d72; --ink-3: #8593a6; --line: #dfe5ee;
+    --signal: #3b4bd8; --signal-ink: #ffffff; --signal-soft: #e9ebfc;
+    --trace: #0b8f6a; --trace-soft: #e2f4ee; --pain: #c2410c; --pain-soft: #fff1e6;
+    --code-bg: #eef1f6; --shadow: 0 1px 2px rgba(22, 32, 46, .05), 0 8px 24px -12px rgba(22, 32, 46, .18);
+    --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --canvas: #0e1520; --panel: #141c28; --panel-2: #19222f;
+      --ink: #e6ebf2; --ink-2: #a9b5c5; --ink-3: #6f7d90; --line: #243042;
+      --signal: #8d97ff; --signal-ink: #0e1520; --signal-soft: rgba(141, 151, 255, .14);
+      --trace: #3fd0a4; --trace-soft: rgba(63, 208, 164, .12); --pain: #ff9b62; --pain-soft: rgba(255, 155, 98, .14);
+      --code-bg: #1f2a39; --shadow: 0 8px 24px -12px rgba(0, 0, 0, .6);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --canvas: #0e1520; --panel: #141c28; --panel-2: #19222f;
+    --ink: #e6ebf2; --ink-2: #a9b5c5; --ink-3: #6f7d90; --line: #243042;
+    --signal: #8d97ff; --signal-ink: #0e1520; --signal-soft: rgba(141, 151, 255, .14);
+    --trace: #3fd0a4; --trace-soft: rgba(63, 208, 164, .12); --pain: #ff9b62; --pain-soft: rgba(255, 155, 98, .14);
+    --code-bg: #1f2a39; --shadow: 0 8px 24px -12px rgba(0, 0, 0, .6);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+  body { margin: 0; background: var(--canvas); color: var(--ink); font: 15px/1.6 var(--sans); }
+  :focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+  a { color: var(--signal); }
+  code, kbd { font: 13px/1.5 var(--mono); }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+  kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--panel); color: var(--ink-2); white-space: nowrap; }
+  pre { background: var(--code-bg); border-radius: 8px; padding: 12px 14px; overflow-x: auto; margin: 12px 0; }
+  pre code { background: none; padding: 0; font-size: 12.5px; }
+
+  /* Top bar, like the viewer's */
+  .bar { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 12px; padding: 10px 20px; background: var(--panel); border-bottom: 1px solid var(--line); min-height: 56px; }
+  .mark { width: 28px; height: 28px; border-radius: 8px; background: var(--signal); flex: none; display: grid; place-items: center; }
+  .mark svg { width: 16px; height: 16px; }
+  .bar h1 { font-size: 15px; font-weight: 600; margin: 0; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar a.back { font-size: 13px; text-decoration: none; border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; background: var(--panel-2); color: var(--ink); white-space: nowrap; }
+  .bar a.back:hover { border-color: var(--signal); color: var(--signal); }
+
+  .layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 32px; max-width: 1180px; margin: 0 auto; padding: 24px 20px 80px; }
+  nav.toc { position: sticky; top: 80px; align-self: start; max-height: calc(100vh - 100px); overflow-y: auto; font-size: 13.5px; }
+  nav.toc ol { list-style: none; margin: 0; padding: 0; }
+  nav.toc li { margin: 0; }
+  nav.toc a { display: block; padding: 4px 10px; border-radius: 6px; color: var(--ink-2); text-decoration: none; border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--ink); background: var(--panel-2); }
+  nav.toc a.on { color: var(--signal); border-left-color: var(--signal); background: var(--signal-soft); }
+  nav.toc ol ol a { padding-left: 22px; font-size: 13px; }
+
+  main { min-width: 0; }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 24px 28px; margin-bottom: 20px; box-shadow: var(--shadow); }
+  h2 { font-size: 21px; margin: 0 0 6px; letter-spacing: -.01em; }
+  h3 { font-size: 16px; margin: 24px 0 6px; }
+  section > p:first-of-type.lede { color: var(--ink-2); margin-top: 0; }
+  p, li { max-width: 74ch; }
+  ul, ol { padding-left: 22px; }
+  li { margin: 3px 0; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 14px; }
+  th, td { text-align: left; vertical-align: top; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+  th { font-weight: 600; color: var(--ink-2); font-size: 12.5px; text-transform: uppercase; letter-spacing: .03em; }
+  .table-wrap { overflow-x: auto; }
+  figure { margin: 16px 0; }
+  figure img { display: block; max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: 10px; }
+  figcaption { color: var(--ink-3); font-size: 13px; margin-top: 6px; }
+  .note { background: var(--signal-soft); border-left: 3px solid var(--signal); border-radius: 0 8px 8px 0; padding: 10px 14px; margin: 14px 0; }
+  .warn { background: var(--pain-soft); border-left: 3px solid var(--pain); border-radius: 0 8px 8px 0; padding: 10px 14px; margin: 14px 0; }
+  .pain { color: var(--pain); font-weight: 500; }
+
+  /* Numbered walkthrough */
+  .steps { counter-reset: s; list-style: none; padding: 0; }
+  .steps > li { counter-increment: s; position: relative; padding-left: 40px; margin: 14px 0; }
+  .steps > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--signal); color: var(--signal-ink); font-weight: 600; font-size: 13px; display: grid; place-items: center; }
+  .prompt { background: var(--trace-soft); border-left: 3px solid var(--trace); border-radius: 0 8px 8px 0; padding: 10px 14px; margin: 10px 0; font-style: italic; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 14px 0; }
+  .card { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: var(--panel-2); }
+  .card b { display: block; margin-bottom: 2px; }
+  .card span { color: var(--ink-2); font-size: 14px; }
+
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: minmax(0, 1fr); padding: 16px 16px 60px; gap: 16px; }
+    nav.toc { position: static; max-height: none; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 10px; }
+    nav.toc ol ol { display: none; }
+    section { padding: 18px 16px; }
+  }
+</style>
+</head>
+<body>
+<header class="bar">
+  <span class="mark" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.6"><circle cx="4" cy="4" r="2" fill="#fff"/><circle cx="12" cy="12" r="2" fill="#fff"/><path d="M4 4h8v8"/></svg></span>
+  <h1>Architecture Viewer guide</h1>
+  <a class="back" href="index.html">Open the viewer</a>
+</header>
+
+<div class="layout">
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#about">What it is for</a></li>
+    <li><a href="#start">Getting started</a></li>
+    <li><a href="#present">Present mode</a>
+      <ol>
+        <li><a href="#present-steps">Steps</a></li>
+        <li><a href="#present-views">Detail and Overview</a></li>
+        <li><a href="#present-move">Moving around</a></li>
+      </ol>
+    </li>
+    <li><a href="#edit">Edit mode</a>
+      <ol>
+        <li><a href="#edit-open">What Edit opens</a></li>
+        <li><a href="#edit-discovery">Discovery and pains</a></li>
+        <li><a href="#edit-draw">Drawing</a></li>
+        <li><a href="#edit-steps">Steps and linking</a></li>
+        <li><a href="#edit-proposed">Proposed architecture</a></li>
+        <li><a href="#edit-diffs">Diffs and undo</a></li>
+        <li><a href="#edit-save">Saving and export</a></li>
+      </ol>
+    </li>
+    <li><a href="#agent">Working with an AI agent</a>
+      <ol>
+        <li><a href="#agent-flow">How it works</a></li>
+        <li><a href="#agent-cursor">Cursor</a></li>
+        <li><a href="#agent-claude">Claude Code</a></li>
+        <li><a href="#agent-stack">Choosing the stack</a></li>
+        <li><a href="#agent-review">Reviewing the draft</a></li>
+        <li><a href="#agent-update">Updating a sketch</a></li>
+        <li><a href="#agent-other">Other agents, own files</a></li>
+      </ol>
+    </li>
+    <li><a href="#keys">Keyboard shortcuts</a></li>
+    <li><a href="#files">Files and format</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<!-- ======================================================= -->
+<section id="about">
+  <h2>What it is for</h2>
+  <p class="lede">A browser tool for solutions architects. Run a guided technical discovery, map a process as it runs today with its pains, design the proposed architecture that removes them, and present both, step by step. Everything lives in one Markdown file that people and AI agents can read, write and version.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Stage</th><th>What the tool gives you</th></tr></thead>
+    <tbody>
+      <tr><td><b>1. Discover</b></td><td>A structured discovery form: use case, current process, pains, quantification, blockers, definition of success, decision process, rollout and open questions.</td></tr>
+      <tr><td><b>2. Map the process today</b></td><td>An <b>As-is process</b> board: people, systems and handoffs, steps with who, tool and wait time, and each pain (P1, P2 …) pinned to the step where it happens.</td></tr>
+      <tr><td><b>3. Architect the solution</b></td><td>A <b>Proposed architecture</b> board: components grouped by system, 🔒 human gates where a person decides, an owner per step, and the pains each step removes.</td></tr>
+      <tr><td><b>4. Present and hand over</b></td><td><b>Present</b> walks through either board step by step, or as an <b>Overview</b> with one box per group. <b>Export .md</b> writes everything into one Markdown file.</td></tr>
+      <tr><td><b>5. Let an AI agent draft it</b></td><td>Give a discovery call transcript to the <code>process-to-sketch</code> skill in Cursor or Claude Code. It asks which software stack to prefer, researches it in the official documentation, and drafts stages 1-3. See <a href="#agent">Working with an AI agent</a>.</td></tr>
+    </tbody>
+  </table></div>
+  <p>It also presents existing architecture documents: any Markdown file with a Mermaid flowchart and a step table can be walked through, and edited as a copy.</p>
+  <div class="note"><b>Local and private.</b> The viewer is one HTML file. Sketches are saved in your browser, and <code>serve.py</code> binds to localhost only. Use public or synthesized data in shared sessions.</div>
+</section>
+
+<!-- ======================================================= -->
+<section id="start">
+  <h2>Getting started</h2>
+  <h3>With the local server (recommended)</h3>
+  <p>From the <code>architecture_viewer</code> folder:</p>
+<pre><code>python3 serve.py sample_sketch.md --open         # a process sketch: discovery, pains, both boards
+python3 serve.py sample_architecture.md --open   # an architecture walkthrough
+python3 serve.py path/to/other.md --port 8001 --open</code></pre>
+  <p>The server shows that one file and reloads the page within about 2 seconds whenever the file changes, so you can watch an AI agent or an editor write it. It needs Python 3.10+ and nothing else.</p>
+  <h3>Without a server</h3>
+  <p>Open <code>index.html</code> in a browser. Then use <b>New</b>, <b>Load</b> or <b>Open file</b>, or drop a Markdown file onto the page. There is no live reload in that case.</p>
+  <h3>The three ways in</h3>
+  <ul>
+    <li><b>Start a new sketch</b> (or <b>New</b> in the top bar) opens an empty sketch in Edit mode.</li>
+    <li><b>Load a saved sketch</b> (or <b>Load ▾</b>) lists the sketches saved in this browser, newest first.</li>
+    <li><b>Open file</b> opens a Markdown file. In Present mode it is shown; in Edit mode it is edited.</li>
+  </ul>
+  <figure><img src="screenshots/start.png" alt="The start page with Open file, Start a new sketch and Load a saved sketch" loading="lazy"><figcaption>The start page, with the Load menu open.</figcaption></figure>
+  <p class="note">The page loads Mermaid and its fonts from the internet (cdn.jsdelivr.net, Google Fonts), so it needs a connection.</p>
+</section>
+
+<!-- ======================================================= -->
+<section id="present">
+  <h2>Present mode</h2>
+  <p class="lede">Present walks through a diagram and its steps. It works for sketches and for any Markdown file in the viewer's format.</p>
+
+  <h3 id="present-steps">Steps</h3>
+  <ul>
+    <li><b>Click a step</b> in the sidebar, press <kbd>←</kbd> <kbd>→</kbd>, or press <kbd>Space</kbd> to play (3 seconds per step). The view zooms to the step and highlights its boxes and arrows in blue, and what they touch in green.</li>
+    <li><b>Click a box or a group</b> in the diagram to list every step that uses it. Click a step there to jump to it.</li>
+    <li><kbd>Esc</kbd> or a click on empty canvas clears the highlight.</li>
+    <li><b>Several diagrams</b>, for example <i>As-is process</i> and <i>Proposed architecture</i>: the picker in the top bar switches between them, each with its own steps.</li>
+    <li>In a sketch, the step details show the step's pains, or the pains it removes, in <span class="pain">orange</span>.</li>
+  </ul>
+  <figure><img src="screenshots/present.png" alt="Present mode at step 4 of the proposed architecture" loading="lazy"><figcaption>Present mode: the proposed architecture at step ④, with its owner, what happens, and the pain it removes.</figcaption></figure>
+
+  <h3 id="present-views">Detail and Overview</h3>
+  <ul>
+    <li><b>Detail</b> shows every box and arrow.</li>
+    <li><b>Overview</b> (<kbd>O</kbd>) collapses each top-level group into one box and merges the arrows between groups, for the big picture. Steps still work: the view zooms to the groups the step touches.</li>
+    <li>On a group in the Overview, <b>Show in detail</b> switches back and zooms to that group.</li>
+  </ul>
+  <figure><img src="screenshots/overview.png" alt="Overview mode, one box per group with merged arrows labelled by step" loading="lazy"><figcaption>Overview: one box per group, with merged arrows labelled by step.</figcaption></figure>
+
+  <h3 id="present-move">Moving around</h3>
+  <ul>
+    <li><b>Drag</b> or scroll to move the diagram. <b>Pinch</b> or <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + scroll to zoom at the pointer. <kbd>+</kbd> <kbd>−</kbd> zoom around the centre.</li>
+    <li><b>Fit</b> (<kbd>F</kbd>) shows the whole diagram.</li>
+    <li>The <b>minimap</b> in the corner shows where you are. Click or drag in it to move.</li>
+    <li><b>Compact layout</b> (dropdown in the top bar) uses Mermaid's ELK engine: a smaller diagram with right-angled arrows. The choice is remembered per browser.</li>
+    <li>The half-moon button switches light and dark.</li>
+  </ul>
+</section>
+
+<!-- ======================================================= -->
+<section id="edit">
+  <h2>Edit mode</h2>
+  <p class="lede">One button in the top bar switches between <b>Edit</b> and <b>Present</b>. In Edit mode, the second bar holds the sketch name, the board picker (<i>As-is process</i> / <i>Proposed architecture</i>), the <b>Actions</b> menu and undo/redo.</p>
+
+  <h3 id="edit-open">What Edit opens</h3>
+  <ul>
+    <li><b>A file shown in the viewer:</b> Edit opens a <b>copy</b>. Each diagram with a step table becomes a board. The file on disk is never changed. Its export puts your edits back into the file's text in place, and keeps every line you didn't touch.</li>
+    <li><b>A file exported from Edit mode</b> (or written by the AI agent skill): Edit reopens the sketch stored in it, with discovery, pains, owners and the diff log. If the browser has newer changes to it, or the file was changed by hand, you choose which version to keep.</li>
+    <li><b>New</b> starts an empty sketch. <b>Load</b> continues a saved one.</li>
+  </ul>
+
+  <h3 id="edit-discovery">Discovery and pains</h3>
+  <ul>
+    <li><b>Discovery tab:</b> a form in collapsible sections (use case, current process, pains, quantification, blockers and risks, definition of success, decision process, rollout plan, open questions). Each section shows how many of its fields are filled. Fill it in as you ask.</li>
+    <li><b>Pains tab:</b> P1, P2 … in the speaker's words, with what each one costs. Each pain shows where it happens and which proposed step removes it.</li>
+    <li><b>Click a pain</b> to highlight the boxes where it happens, in <span class="pain">orange</span>. Click it again, click the canvas, or press <kbd>Esc</kbd> to clear.</li>
+  </ul>
+  <figure><img src="screenshots/pains.png" alt="Edit mode, As-is board, with pain P1 selected and its box highlighted" loading="lazy"><figcaption>Pain P1 selected: the box where it happens is highlighted in orange.</figcaption></figure>
+
+  <h3 id="edit-draw">Drawing</h3>
+  <p>Mermaid lays out the boxes. You can add them in three ways:</p>
+  <div class="cards">
+    <div class="card"><b>Quick-add bar</b><span>At the bottom of the canvas (<kbd>/</kbd>). Type <code>Requester -&gt; Ops inbox : email</code>.</span></div>
+    <div class="card"><b>Right-click</b><span>On empty space, a group or a box, for a menu that fits what you clicked.</span></div>
+    <div class="card"><b>Actions → Add</b><span>A shape, a group, or Connect (click the start box, then the end box).</span></div>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Quick-add syntax</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td><code>A -&gt; B : label</code></td><td>Both boxes and a labelled arrow</td></tr>
+      <tr><td><code>A -&gt; B -&gt; C</code></td><td>A chain of boxes</td></tr>
+      <tr><td><code>A ..&gt; B</code></td><td>A dashed arrow</td></tr>
+      <tr><td><code>[Finance] A -&gt; B</code></td><td>New boxes go into the group <i>Finance</i></td></tr>
+      <tr><td><code>person:</code> <code>store:</code> <code>decision:</code> <code>gate:</code></td><td>In front of a name: sets the shape (person, system of record, decision, 🔒 human gate)</td></tr>
+    </tbody>
+  </table></div>
+  <ul>
+    <li><b>Click a box</b> to edit its name, further lines, shape, group and arrows in the sidebar. Double-click or <kbd>Enter</kbd> to rename. <kbd>Delete</kbd> removes it.</li>
+    <li><b>Drag</b> a box to move it, or a group by its title. A moved box is pinned. <b>Actions → Reset positions</b> hands the layout back to Mermaid.</li>
+    <li><b>Actions → Layout</b> sets the board's direction. <b>Auto</b> picks left-to-right or top-down, whichever fits the screen.</li>
+    <li>In Edit mode the scroll wheel zooms at the pointer.</li>
+  </ul>
+
+  <h3 id="edit-steps">Steps and linking</h3>
+  <ul>
+    <li>The <b>Steps</b> tab shows the steps of the board that's open. As-is steps (Ⓐ Ⓑ Ⓒ) have who, tool, wait and the pains that happen there. Proposed steps (① ② ③) have an owner, what happens, and the pains they remove.</li>
+    <li><b>Link boxes</b>: while it's on, click boxes and arrows (or arrow labels) to link them to the step, and click again to unlink. A linked box shows the step key in its label.</li>
+    <li>A step highlights its linked boxes, the arrows between them, and its linked arrows. Link an arrow when it should light up with the step.</li>
+    <li>Tag a pain on an as-is step and its box shows <span class="pain">⚠ P1</span>.</li>
+  </ul>
+
+  <h3 id="edit-proposed">Proposed architecture</h3>
+  <ul>
+    <li>Switch to <b>Proposed architecture</b> in the second bar. Each board has its own diagram and steps; Discovery and Pains are shared.</li>
+    <li>On an empty board, <b>Start from the standard pattern</b> fills in front door, intake, agent work, routing, a human gate, act and log, and status. Rename the boxes and groups to fit.</li>
+    <li>The <b>Pain check</b> below the steps lists pains no step removes yet, and steps that remove none. Its <b>scorecard</b> holds a pilot measure per pain.</li>
+  </ul>
+  <figure><img src="screenshots/create.png" alt="Edit mode, proposed architecture with step 4 selected" loading="lazy"><figcaption>The proposed architecture of a deal desk approval, with step ④ selected and the pain it removes.</figcaption></figure>
+
+  <h3 id="edit-diffs">Diffs and undo</h3>
+  <ul>
+    <li><kbd>⌘Z</kbd> / <kbd>⇧⌘Z</kbd> undo and redo up to 50 changes.</li>
+    <li>The <b>Diffs</b> tab lists every change in plain words, newest first. Select an entry to preview that state, read-only. <b>Restore this state</b> makes it current (and can itself be undone). <b>Back to now</b> or <kbd>Esc</kbd> leaves the preview.</li>
+    <li>The <b>Notes</b> tab is free text.</li>
+  </ul>
+
+  <h3 id="edit-save">Saving and export</h3>
+  <ul>
+    <li>Every change is saved in the browser within a second and survives reloads. Each sketch is its own entry, and a second tab takes over newer changes instead of overwriting them.</li>
+    <li>Each address (<code>127.0.0.1:8000</code>, <code>localhost:8000</code>, another port) has its own saved sketches. Clearing site data deletes them.</li>
+    <li><b>Actions → Export .md</b> downloads everything as one Markdown file: discovery, pains, one diagram and step table per board, the pain scorecard, a <b>Diffs</b> section, and the sketch itself in an HTML comment, so <b>Edit</b> brings it all back. This file is your backup.</li>
+    <li><b>Actions → Copy Markdown</b> puts the same text on the clipboard.</li>
+    <li><b>Actions → Delete this sketch</b> removes it from the browser, after a confirmation.</li>
+  </ul>
+</section>
+
+<!-- ======================================================= -->
+<section id="agent">
+  <h2>Working with an AI agent</h2>
+  <p class="lede">The <code>process-to-sketch</code> skill in <code>agent_skill_for_SA_tool/</code> lets <b>Cursor</b> or <b>Claude Code</b> turn a business workflow description or a discovery meeting transcript into a complete process sketch for this viewer, with a proposed architecture on the software stack you choose.</p>
+
+  <h3 id="agent-flow">How it works</h3>
+  <ol class="steps">
+    <li><b>You start the agent</b> in the <code>agent_skill_for_SA_tool/</code> folder and point it at a transcript or description.</li>
+    <li><b>It asks which software stack to prefer</b>, unless your prompt already names one, and waits for your answer. It also asks what is ruled out and whether you have documentation links.</li>
+    <li><b>It creates a new project</b> with <code>scripts/new_project.py</code>: <code>projects/&lt;slug&gt;-&lt;timestamp&gt;/</code>. Every run gets its own directory, so runs and stacks can be compared side by side.</li>
+    <li><b>It researches the stack in its official documentation</b>: the vendor's docs, API reference, pricing and limits pages. It writes what it found, with source links, to <code>stack-notes.md</code>, and maps the products onto the roles of the pattern: front door, orchestrator, worker, system of record, review surface, release target. Capabilities the docs don't confirm are marked <code>ASSUMED</code>.</li>
+    <li><b>It drafts the sketch</b>: discovery answers and pains in the customer's words, the as-is board with every handoff and wait, and the proposed board built only from the researched components, with 🔒 gates wherever a person decides.</li>
+    <li><b>It validates</b> the file with <code>scripts/check_sketch.py</code> and fixes errors until it prints <code>OK</code>.</li>
+    <li><b>It reports back</b>: the stack used, the paths, the number of pains, steps and gates, and everything it assumed.</li>
+  </ol>
+
+  <h3 id="agent-cursor">Cursor</h3>
+  <ol>
+    <li>Open <code>agent_skill_for_SA_tool/</code> as the workspace, so Cursor picks up <code>.cursor/rules/</code> and <code>.cursor/skills/</code>.</li>
+    <li>In the Agent chat, ask:
+      <div class="prompt">Use the process-to-sketch skill on process_description_transcript.md.</div>
+      or name the stack right away:
+      <div class="prompt">Use the process-to-sketch skill on process_description_transcript.md. Prefer the Mapbox stack.</div>
+    </li>
+    <li>The research step uses web search. You can also add the vendor's documentation to Cursor as a doc (<code>@Docs</code>) and mention it in the prompt.</li>
+  </ol>
+
+  <h3 id="agent-claude">Claude Code</h3>
+  <ol>
+    <li>Start it in the skill folder, so it loads <code>CLAUDE.md</code>, the skill and the script permissions:
+<pre><code>cd architecture_viewer/agent_skill_for_SA_tool &amp;&amp; claude</code></pre></li>
+    <li>Ask in plain words, or call the skill by name:
+      <div class="prompt">/process-to-sketch process_description_transcript.md, prefer AWS Step Functions, Lambda and S3</div>
+    </li>
+    <li>On the first start, approve the <code>@</code> imports in <code>CLAUDE.md</code> and the project settings. Approve the web searches and fetches of the research step when asked.</li>
+  </ol>
+
+  <h3 id="agent-stack">Choosing the stack</h3>
+  <p>The skill is stack-agnostic. You decide what the proposed architecture is built from; the agent never picks a stack on its own. Good answers to its question name products, not only vendors, and say what's off limits:</p>
+  <div class="cards">
+    <div class="card"><b>Geospatial pipeline</b><span>"Mapbox: Studio, the Tiling Service and the Directions API. Data stays in the EU."</span></div>
+    <div class="card"><b>Cloud workflow</b><span>"AWS Step Functions, Lambda and S3. No third-party SaaS."</span></div>
+    <div class="card"><b>Agentic automation</b><span>"Grok Bot, Cursor API with Cloud Agents, GitHub as system of record. No email."</span></div>
+  </div>
+  <ul>
+    <li>Answer <i>"you choose"</i> and the agent proposes one or two stacks with a reason each, then waits for your pick.</li>
+    <li>If a role can't be filled from your stack, the agent may add another product, but says so in its report and in the open questions.</li>
+    <li>Without web access, the agent asks you for the documentation pages instead of designing from memory.</li>
+  </ul>
+  <div class="note">A version of the skill that always uses the Grok Bot + Cursor API + GitHub stack lives outside this repo, as <code>agent_skill_for_SA_tool_grok_stack/</code>.</div>
+
+  <h3 id="agent-review">Reviewing the draft in the viewer</h3>
+  <p>Open the result from the skill folder; the page reloads whenever the agent changes the file:</p>
+<pre><code>python3 ../serve.py projects/&lt;id&gt;/&lt;slug&gt;.md --open</code></pre>
+  <ul>
+    <li><b>Present:</b> walk both boards. As-is steps (Ⓐ …) show the <span class="pain">⚠</span> pain tags; proposed steps (① …) show owners and the pains they remove.</li>
+    <li><b>Overview</b> (<kbd>O</kbd>): one box per environment of the chosen stack (<code>E1 · &lt;product&gt;</code>, <code>E2 · &lt;product&gt;</code> …) plus <i>Existing systems</i>. A quick check that the architecture is right at a glance.</li>
+    <li><b>Edit:</b> opens the sketch with discovery, pains and owners filled in. Refine it live with the customer, then <b>Export .md</b>.</li>
+    <li>Read <code>stack-notes.md</code> next to the sketch: every component should have an official source, and every <code>ASSUMED</code> item is an open question for the customer or the vendor.</li>
+  </ul>
+  <div class="warn">The draft is a starting point. Check every number and quote against the transcript, and every product capability against <code>stack-notes.md</code>, before you show it to a customer.</div>
+
+  <h3 id="agent-update">Updating a sketch</h3>
+  <ul>
+    <li>Name the project to change an existing sketch, for example <i>"Update projects/acme-hiring-20261018-101500/ and add a reference check step"</i>. The agent edits that file and keeps its id, so the viewer updates the stored sketch instead of opening a second one.</li>
+    <li>Ask for a different stack and the agent researches it again and updates <code>stack-notes.md</code>.</li>
+    <li>Without a project name, every run creates a new project.</li>
+  </ul>
+
+  <h3 id="agent-other">Other agents, and files of your own</h3>
+  <ul>
+    <li><b>Other assistants</b> (Codex, Copilot, Windsurf …): give them the three files in <code>.cursor/rules/</code> as standing instructions and ask them to follow <code>skills/process-to-sketch/SKILL.md</code>.</li>
+    <li><b>A chat model without file access:</b> paste in the transcript, <code>SKILL.md</code>, <code>architecture-pattern.md</code>, <code>stack-research.md</code>, <code>sketch-template.md</code> and section 8 of the format spec, then run the two scripts yourself.</li>
+    <li><b>Architecture walkthroughs</b> instead of process sketches: any agent can write a Mermaid flowchart plus a step table by following sections 1-7 of <code>format_specification.md</code>.</li>
+  </ul>
+</section>
+
+<!-- ======================================================= -->
+<section id="keys">
+  <h2>Keyboard shortcuts</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Key</th><th>Present mode</th></tr></thead>
+    <tbody>
+      <tr><td><kbd>→</kbd> <kbd>↓</kbd> / <kbd>←</kbd> <kbd>↑</kbd></td><td>Next / previous step</td></tr>
+      <tr><td><kbd>Space</kbd></td><td>Play or pause (3 s per step)</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>Clear the highlight</td></tr>
+      <tr><td><kbd>O</kbd></td><td>Switch between Detail and Overview</td></tr>
+      <tr><td><kbd>F</kbd></td><td>Fit the whole diagram</td></tr>
+      <tr><td><kbd>+</kbd> / <kbd>−</kbd></td><td>Zoom in or out</td></tr>
+      <tr><td><kbd>?</kbd></td><td>Open this guide</td></tr>
+    </tbody>
+  </table></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Key</th><th>Edit mode</th></tr></thead>
+    <tbody>
+      <tr><td><kbd>/</kbd></td><td>Jump to the quick-add bar</td></tr>
+      <tr><td><kbd>N</kbd></td><td>New box, in the last shape you picked</td></tr>
+      <tr><td><kbd>G</kbd></td><td>New group</td></tr>
+      <tr><td><kbd>C</kbd></td><td>Connect two boxes</td></tr>
+      <tr><td><kbd>Enter</kbd></td><td>Rename the selected box</td></tr>
+      <tr><td><kbd>Delete</kbd></td><td>Delete the selected box or group</td></tr>
+      <tr><td><kbd>F</kbd></td><td>Fit the whole board</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>Leave a Diffs preview, cancel connecting or linking, then clear the selection</td></tr>
+      <tr><td><kbd>⌘Z</kbd> / <kbd>⇧⌘Z</kbd></td><td>Undo / redo</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ======================================================= -->
+<section id="files">
+  <h2>Files and format</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>File</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>index.html</code></td><td>The whole app: Edit mode and Present mode</td></tr>
+      <tr><td><code>guide.html</code></td><td>This guide</td></tr>
+      <tr><td><code>serve.py</code></td><td>Local server for the page, this guide and one Markdown file, with live reload</td></tr>
+      <tr><td><code>format_specification.md</code></td><td>How to write a compatible file, for people and AI agents: walkthroughs (sections 1-7) and process sketches (section 8), with a checklist (section 10)</td></tr>
+      <tr><td><code>sample_sketch.md</code></td><td>A process sketch (deal desk discount approval, synthesized)</td></tr>
+      <tr><td><code>sample_architecture.md</code></td><td>An architecture walkthrough (fictional bookstore order flow)</td></tr>
+      <tr><td><code>agent_skill_for_SA_tool/</code></td><td>The <code>process-to-sketch</code> skill for Cursor and Claude Code, with its validator and a sample transcript</td></tr>
+    </tbody>
+  </table></div>
+  <p><b>In one sentence:</b> a file holds a Mermaid <b>flowchart</b> and a Markdown <b>step table</b>. Each row has a short step key (<code>①</code>, <code>Ⓐ</code>, <code>3a</code>), and the same key appears in the labels of the boxes that belong to that step. A process sketch adds discovery, pains and the sketch as JSON in an HTML comment.</p>
+</section>
+
+</main>
+</div>
+
+<script>
+  // Mark the section in view in the contents.
+  const links = [...document.querySelectorAll("nav.toc a")];
+  const byId = new Map(links.map((a) => [a.getAttribute("href").slice(1), a]));
+  const targets = [...byId.keys()].map((id) => document.getElementById(id)).filter(Boolean);
+  const mark = () => {
+    let cur = targets[0];
+    for (const t of targets) if (t.getBoundingClientRect().top < 120) cur = t;
+    links.forEach((a) => a.classList.toggle("on", a === byId.get(cur.id)));
+  };
+  addEventListener("scroll", mark, { passive: true });
+  mark();
+</script>
+</body>
+</html>
