@@ -258,7 +258,7 @@ The last thing in the file is an HTML comment that holds the sketch. Markdown re
 ```
 
 - **Header line:** exactly `<!-- architecture-viewer-sketch`, then the JSON on the following lines, then `-->` on its own line.
-- **`--` is not allowed** inside an HTML comment. Write it as `--` in JSON strings, for example `"label":"invoice -- PDF"`.
+- **`--` is not allowed** inside an HTML comment. Write it as `-\u002d` in JSON strings, for example `"label":"invoice -\u002d PDF"`.
 - **Optional parts:** an agent leaves out `fnv` and `log`, which Edit mode writes itself. Missing fields get their defaults.
 
 | Field | Content |

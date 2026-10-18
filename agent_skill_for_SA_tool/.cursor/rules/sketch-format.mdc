@@ -1,0 +1,52 @@
+---
+description: Hard format rules for Architecture Viewer process sketches
+globs: projects/**/*.md
+alwaysApply: false
+---
+
+# Sketch format
+
+The source of truth is `skills/process-to-sketch/format_specification.md`, section 8. Start every sketch from `skills/process-to-sketch/sketch-template.md`.
+
+## Location
+
+- Every new sketch lives in its own new project directory, created by `python3 scripts/new_project.py "<Title>"`: `projects/<slug>-<YYYYMMDD-HHMMSS>/<slug>.md`.
+- The JSON `id` is that directory name.
+- Never write a new sketch into an existing project directory, and never overwrite another project's files.
+
+## Order of sections
+
+`# Title` → the "Sketched in Architecture Viewer on <date>. All data is synthesized for the exercise." line → `## Technical discovery` → `## Pains` → `## As-is process` + `### As-is steps` → `## Proposed architecture` + `### Proposed steps` → `## Pain scorecard` → optional `## Implementation notes` → the JSON comment, last.
+
+## Keys
+
+- As-is keys are `Ⓐ Ⓑ Ⓒ …` and proposed keys `① ② ③ …`, in row order, in the first column of each step table.
+- Every box label starts with the keys of the steps linked to it: `INTAKE["① ② Intake<br/>asks once"]`.
+- A step without a box is listed in a comment: `%% Steps without a box yet: Ⓑ`.
+- An arrow linked to a step that doesn't run between two of its boxes gets a `%% @step ④: FROM-->TO` line.
+- The last line of each diagram is `%% @exact` with all its keys.
+
+## Labels and ids
+
+- Quote every label. Use `<br/>` for line breaks. The first line is the name.
+- Escape `<` and `>` in labels as `&lt;` and `&gt;`.
+- Mermaid ids are the label in capitals, with `_` for spaces and punctuation, at most 24 characters, unique. Never use `end`, `graph` or `subgraph` as an id.
+- As-is boxes with pains end with a line `⚠ P1 P3`. Proposed boxes never carry `⚠` tags.
+- Pain cells: `⚠ P1 <text>` in the as-is table, `P1 <text>` in the proposed table, several separated by `, `.
+
+## Groups
+
+- Every top-level `subgraph` has a `%% @overview <ID>: <title> | <role>` line.
+- A human gate's label starts with `🔒`.
+
+## JSON
+
+- Header line exactly `<!-- architecture-viewer-sketch`, the JSON on the next lines, `-->` on its own line.
+- `"v":3`, a stable `id` (a slug of the title), `dir` set to `"LR"` or `"TD"` on both boards.
+- Never write `--` inside the JSON comment. Write `-\u002d` instead.
+- Node labels in the JSON carry no step keys and no `⚠` tags.
+- The JSON and the Markdown describe the same groups, boxes, arrows, steps and pains.
+
+## Check
+
+- Run `python3 scripts/check_sketch.py projects/<id>/<slug>.md` after every write, and fix every error before you report back.

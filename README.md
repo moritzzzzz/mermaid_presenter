@@ -191,6 +191,8 @@ One button in the top bar switches between **Edit** and **Present**. In Present 
 
 The spec has tested examples, a method for mapping a process, and a checklist. A typical loop: the agent drafts a sketch from discovery notes, you open it, refine it live with the customer in Edit mode, and export the result.
 
+**Agent skill:** [`agent_skill_for_SA_tool/`](agent_skill_for_SA_tool/) contains a ready-made skill for **Cursor** and **Claude Code** (`process-to-sketch`). It turns a business workflow description or discovery transcript into a process sketch for this viewer: discovery, pains, the as-is process, and a proposed human-in-the-loop architecture on a software stack the developer chooses (for example Mapbox or Grok Bot + Cursor API + GitHub). It asks which stack to prefer and researches it from the official documentation before it designs the proposal. It also includes a validator script and a sample discovery transcript (ACME hiring, synthesized). Setup and usage for each assistant: [`agent_skill_for_SA_tool/README.md`](agent_skill_for_SA_tool/README.md).
+
 ## Files
 
 | File | Purpose |
@@ -200,6 +202,7 @@ The spec has tested examples, a method for mapping a process, and a checklist. A
 | `format_specification.md` | How to write a compatible file, for people and AI agents: walkthrough files for architectures, and process sketches (as-is process, pains, proposed architecture), with tested examples and a checklist |
 | `sample_architecture.md` | An architecture walkthrough (fictional bookstore order flow) |
 | `sample_sketch.md` | A sketch exported from Edit mode (deal desk discount approval, synthesized): discovery, pains, both boards with their steps, and the pain scorecard. **Edit** reopens it as a sketch |
+| `agent_skill_for_SA_tool/` | Agent skill (Cursor and Claude Code) that writes process sketches from a workflow description. See its [README](agent_skill_for_SA_tool/README.md) |
 | `screenshots/` | Detail and overview of the bookstore sample; the start page, Edit mode (pains, proposed architecture) and Present mode of the deal desk sketch |
 | `LICENSE`, `NOTICE` | Apache License 2.0 and the attribution notice |
 

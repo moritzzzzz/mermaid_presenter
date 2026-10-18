@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 scripts/new_project.py:*)",
+      "Bash(python3 scripts/check_sketch.py:*)"
+    ]
+  }
+}

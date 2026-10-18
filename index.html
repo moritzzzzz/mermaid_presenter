@@ -1179,8 +1179,7 @@ function selectStep(idx, scroll) {
   updateProgress();
   if (scroll) {
     $("steps").querySelector(`li[data-idx="${idx}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    // The overview is the big picture: the camera stays put while the highlight moves.
-    if (!state.ov) focusStep(sets);
+    focusStep(sets);
   }
 }
 
@@ -1332,19 +1331,15 @@ function focusOn(els, minScale = READABLE) {
   const b = boxOf(els.filter(Boolean));
   if (b) animateTo(frameFor(b, minScale).v);
 }
-// Frame the step and what it touches; drop the touched parts when that would be too small to read.
+// Frame the step and everything it touches in the visible pane (left of the sidebar), zooming out as far as needed.
 function focusStep(s) {
-  const nodes = (ids) => [...ids].map((id) => state.model.nodes.get(id)).filter((n) => n && n.kind === "node").map((n) => n.el);
-  const core = nodes(s.P).concat([...s.EP].map((e) => e.el));
-  const wide = core.concat(nodes(s.S));
-  // Try the widest readable frame first: step + touched boxes, then step boxes + arrows, then step boxes only.
-  // Long routed arrows (compact layout) can stretch a box far beyond the step itself.
-  const own = nodes(s.P);
-  for (const set of [wide, core, own]) {
-    const b = set.length && boxOf(set);
-    if (b && frameFor(b, READABLE).fits) return animateTo(frameFor(b).v);
-  }
-  focusOn(own.length ? own : core.length ? core : wide);
+  const nodes = (ids, kind = "node") => [...ids].map((id) => state.model.nodes.get(id)).filter((n) => n && n.kind === kind).map((n) => n.el);
+  const arrows = [...s.EP].flatMap((e) => [e.el, e.labelEl]);
+  let all = nodes(s.P).concat(nodes(s.S), arrows).filter(Boolean);
+  // In the overview a step may only touch a group drawn as a frame; frame that group then.
+  if (!all.length) all = nodes(s.P, "cluster").concat(nodes(s.S, "cluster"));
+  const b = all.length && boxOf(all);
+  if (b) animateTo(frameFor(b).v);
 }
 function zoomAround(factor, px, py) {
   cr.camMoved = true;

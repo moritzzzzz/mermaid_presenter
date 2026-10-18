@@ -1,0 +1,41 @@
+---
+description: What a proposed architecture may use: only the stack the developer chose, verified in official documentation, with human approval gates
+alwaysApply: true
+---
+
+# Stack proposal
+
+Read `skills/process-to-sketch/architecture-pattern.md` and `skills/process-to-sketch/stack-research.md` before drawing a proposed architecture.
+
+## Stack choice
+
+- The developer who launches the agent chooses the software stack. If their prompt doesn't name one, ask before you design anything, and wait for the answer. Never pick a stack yourself without their confirmation.
+- Use the stacks they prefer. Use another product only if no preferred product can fill a role, and then say so in the report and in `next.questions`.
+- Respect what they rule out (for example "no email", "no AWS"). If they don't rule anything out, don't add rules of your own.
+
+## Components
+
+- Every component on the proposed board comes from the chosen stack, verified in its official documentation and listed in `projects/<id>/stack-notes.md` with its sources.
+- A capability the documentation doesn't confirm is `ASSUMED` and gets a question in `next.questions`. Never present it as fact.
+- Each environment (where code runs or data lives, with its own credentials) is a top-level `subgraph` with id `E1`, `E2` … and title `E<n> · <product name>`.
+- The customer's existing systems that stay are drawn as one top-level `subgraph` `EXT` named "Existing systems". Say how the workflow reaches each one, or mark the connection `ASSUMED`.
+- People and roles stay outside the subgraphs, as `person` nodes. Build-time tools go into the implementation notes, not the diagram.
+
+## Channels
+
+- People reach the workflow only through the front door and the review surface of the chosen design.
+- Use only channels the chosen stack or the customer's existing systems provide, and none the developer ruled out.
+
+## Humans in the loop
+
+- Put a 🔒 gate (`{{"🔒 …"}}`) wherever a person decides. A business decision, a spend, anything sent to someone outside the company, anything published, and anything that affects a person (for example a candidate) is a decision.
+- Workers draft, process and summarize. They never decide, and they never recommend approve or reject.
+- Only recorded human decisions move a record to `approved`. Every gate's decision is written to the system of record by the orchestrator.
+- A gate has three outcomes: approved, rejected, needs_info. needs_info sends the worker a follow-up on the same item.
+- Release only after every required approver has approved, and only the approved version.
+- A proposal with no 🔒 gate is allowed only when no person decides anything in the process. Say why in the release step's "What happens".
+
+## Steps
+
+- Every proposed step has an owner: a role, or the component that runs it, named as in `stack-notes.md`.
+- Every proposed step removes a pain or is a guardrail. Say which in `Removes`, or leave it empty for a guardrail and say so in "What happens".

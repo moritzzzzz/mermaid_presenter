@@ -1,0 +1,14 @@
+---
+description: Synthetic-data and assumption rules for process sketches
+alwaysApply: true
+---
+
+# Data boundaries
+
+- Treat ACME and every person in the input as fictional.
+- Use only the input description and public or synthesized data. Never use real customer, candidate or employee data.
+- Label every synthesized value `SYNTHETIC`.
+- Label every value you assume yourself (not in the input) `ASSUMED`.
+- Never invent a number the customer gave a different value for. If the input doesn't say, write "Not stated".
+- Keep the speaker's words for pains. Don't make them sound worse or better.
+- Never put secrets, tokens or env var values into a sketch.
