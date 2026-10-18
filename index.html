@@ -411,7 +411,7 @@
     <form id="quick" hidden autocomplete="off">
       <span class="in" id="quickGroup" title="New boxes go outside any group. Start the line with [Group name] to put that line's boxes into the group."></span>
       <input type="text" id="quickInput" aria-label="Quick add" placeholder="Requester -> Ops inbox : email" title="A -> B : label adds boxes and an arrow. ..> draws a dashed arrow. [Group] picks the group for new boxes. person:, store:, decision: or gate: in front of a name sets its shape. Press / to jump here.">
-      <button type="submit">Add</button>
+      <button type="submit" title="Add the boxes and arrows typed in this line (Enter)">Add</button>
     </form>
   </section>
   <aside aria-label="Steps">
@@ -431,11 +431,11 @@
     <div id="creator">
       <div id="inspector"></div>
       <div class="tabs" role="tablist">
-        <button role="tab" data-tab="discovery">Discovery<b id="cntDiscovery">0</b></button>
-        <button role="tab" data-tab="pains">Pains<b id="cntPains">0</b></button>
-        <button role="tab" data-tab="steps">Steps<b id="cntSteps">0</b></button>
-        <button role="tab" data-tab="notes">Notes</button>
-        <button role="tab" data-tab="diffs">Diffs<b id="cntDiffs">0</b></button>
+        <button role="tab" data-tab="discovery" title="Technical discovery: use case, process, pains, numbers, blockers, success, decision, rollout">Discovery<b id="cntDiscovery">0</b></button>
+        <button role="tab" data-tab="pains" title="The pains in the speaker's words, with what each costs. Click one to see where it happens">Pains<b id="cntPains">0</b></button>
+        <button role="tab" data-tab="steps" title="The steps of the board that is open: link boxes, tag pains, set owners">Steps<b id="cntSteps">0</b></button>
+        <button role="tab" data-tab="notes" title="Free-text notes for this sketch">Notes</button>
+        <button role="tab" data-tab="diffs" title="Every change in plain words. Select one to preview it, then restore it if you want it back">Diffs<b id="cntDiffs">0</b></button>
       </div>
       <div class="cpane" id="tab-discovery"></div>
       <div class="cpane" id="tab-pains"></div>
@@ -1138,7 +1138,7 @@ function renderSteps() {
   $("steps").innerHTML = steps.map((s) => {
     const detail = s.cells.map((c, i) => (i === keyCol || i === nameCol || !c) ? "" :
       `<dt>${esc(header[i] || "")}</dt><dd${painCol[i] ? ' class="pains"' : ""}>${inlineMd(c)}</dd>`).join("");
-    return `<li data-idx="${s.idx}" tabindex="0"><span class="token" title="${esc(s.key)}">${esc(displayKey(s.key))}</span><span class="name">${inlineMd(s.cells[nameCol] || "")}</span>${detail ? `<dl class="detail">${detail}</dl>` : ""}</li>`;
+    return `<li data-idx="${s.idx}" tabindex="0" title="Show this step in the diagram. Click again to clear"><span class="token" title="${esc(s.key)}">${esc(displayKey(s.key))}</span><span class="name">${inlineMd(s.cells[nameCol] || "")}</span>${detail ? `<dl class="detail">${detail}</dl>` : ""}</li>`;
   }).join("");
   $("steps").querySelectorAll("li").forEach((li) => {
     const go = () => { const idx = +li.dataset.idx; if (idx === state.sel && !state.comp) clearAll(); else selectStep(idx, true); };
@@ -1203,7 +1203,7 @@ function selectComponent(id) {
   $("component").innerHTML = `<div class="what">${esc(name)}</div>` +
     `<div class="meta">${isGroup ? "Group" : "Component"} <code>${esc(id.replace(/__rest$/, ""))}</code>, ` +
     (touching.length ? `used in ${touching.length} step${touching.length > 1 ? "s" : ""}</div><div class="chips">${chips}</div>` : "not used in any step</div>") +
-    (state.ov ? `<div class="chips"><button class="open-detail">Show in detail</button></div>` : "");
+    (state.ov ? `<div class="chips"><button class="open-detail" title="Switch to Detail and zoom to this group">Show in detail</button></div>` : "");
   $("component").className = "show";
   $("component").querySelectorAll("button[data-idx]").forEach((b) => b.addEventListener("click", () => selectStep(+b.dataset.idx, true)));
   $("component").querySelector(".open-detail")?.addEventListener("click", () => { state.focusComp = true; setMode("detail"); });
@@ -2439,7 +2439,7 @@ function renderDiffs() {
     const i = cr.preview.i, lines = i ? cr.preview.lines : [log.start];
     detail = `<div class="hdetail"><div class="hdh">State ${i}${i ? `, ${esc(time(log.entries[i - 1].t))}` : ""}</div>
       <ul>${lines.slice(0, 30).map((l) => `<li>${esc(l)}</li>`).join("")}${lines.length > 30 ? `<li>… and ${lines.length - 30} more</li>` : ""}</ul>
-      <div class="iacts"><button class="primary" data-act="restore">Restore this state</button><button data-act="now">Back to now</button></div></div>`;
+      <div class="iacts"><button class="primary" data-act="restore" title="Make this state the current one. The restore can be undone">Restore this state</button><button data-act="now" title="Leave the preview and show the current state (Esc)">Back to now</button></div></div>`;
   }
   $("tab-diffs").innerHTML = `<div class="chead"><h3>Diffs</h3><p>Every change, newest first. Select one to see that state on the canvas, then restore it if you want it back. Restoring is a change too, so it can be undone.</p></div>
     ${detail}<ol class="hlist">${Array.from({ length: n + 1 }, (_, k) => row(n - k)).join("")}</ol>`;
@@ -2521,7 +2521,7 @@ function ask(title, text, buttons) {
   return new Promise((resolve) => {
     const dlg = $("askDlg");
     dlg.innerHTML = `<form method="dialog"><h2>${esc(title)}</h2><p>${text}</p><div class="dbtns">${buttons.map((b, i) =>
-      `<button value="${i}" class="${b.primary ? "primary" : ""}${b.danger ? " danger" : ""}">${esc(b.label)}</button>`).join("")}</div></form>`;
+      `<button value="${i}" class="${b.primary ? "primary" : ""}${b.danger ? " danger" : ""}" title="${esc(b.title || b.label)}">${esc(b.label)}</button>`).join("")}</div></form>`;
     dlg.onclose = () => { const v = dlg.returnValue; dlg.returnValue = ""; resolve(v === "" ? null : buttons[+v]?.value ?? null); };
     dlg.showModal();
     dlg.querySelector("button.primary")?.focus();
@@ -2582,7 +2582,7 @@ function showEmptyBoard() {
   } else {
     showMessage(tobe ? "Sketch the proposed architecture" : "Map the process as it runs today",
       `<p>Type in the bar at the bottom, for example <code>${tobe ? "Requester -> Intake service : chat" : "Requester -> Ops inbox : email"}</code>, or use <b>Actions</b>.</p>` +
-      (tobe ? "<p>Or start from the standard pattern: front door, intake, agent work, routing, a human gate, and status. Rename the boxes to fit.</p><button id=\"patternBtn\">Start from the standard pattern</button>"
+      (tobe ? "<p>Or start from the standard pattern: front door, intake, agent work, routing, a human gate, and status. Rename the boxes to fit.</p><button id=\"patternBtn\" title=\"Fill the board with front door, intake, agent work, routing, a human gate, act and log, and status. Rename them to fit\">Start from the standard pattern</button>"
         : "<p>Then add the steps on the right, and pin each pain to the step where it happens.</p>"));
   }
   $("patternBtn")?.addEventListener("click", insertPattern);
@@ -2688,9 +2688,9 @@ function painHighlight(pid) {
 function banner() {
   const el = $("cbanner");
   let html = "";
-  if (cr.preview) html = `Showing state ${cr.preview.i} (read-only). <button data-act="restore">Restore it</button><button data-act="now">Back to now</button>`;
-  else if (cr.connect) html = `${cr.connect.from ? "Now click the box the arrow goes to." : "Click the box the arrow starts from."} <button data-act="cancel">Cancel</button>`;
-  else if (cr.linking >= 0) html = `Click boxes and arrows to link them to step <b>${esc(displayKey(stepKey(cr.board, cr.linking)))}</b>, or click again to unlink. Arrows between linked boxes are included. <button data-act="cancel">Done</button>`;
+  if (cr.preview) html = `Showing state ${cr.preview.i} (read-only). <button data-act="restore" title="Make this state the current one. The restore can be undone">Restore it</button><button data-act="now" title="Leave the preview and show the current state (Esc)">Back to now</button>`;
+  else if (cr.connect) html = `${cr.connect.from ? "Now click the box the arrow goes to." : "Click the box the arrow starts from."} <button data-act="cancel" title="Stop drawing the arrow (Esc)">Cancel</button>`;
+  else if (cr.linking >= 0) html = `Click boxes and arrows to link them to step <b>${esc(displayKey(stepKey(cr.board, cr.linking)))}</b>, or click again to unlink. Arrows between linked boxes are included. <button data-act="cancel" title="Stop linking boxes and arrows to this step (Esc)">Done</button>`;
   el.innerHTML = html; el.hidden = !html;
   document.body.classList.toggle("connecting", !!cr.connect);
   document.body.classList.toggle("linking", cr.linking >= 0);
@@ -2868,7 +2868,7 @@ function renderBar() {
   seg.hidden = sk.slots.length < 2;
   seg.innerHTML = sk.slots.map((k) => {
     const l = boardLabel(sk, k);
-    return `<button data-board="${esc(k)}" aria-pressed="${k === cr.board}" title="${esc(l)}">${esc(l.length > 30 ? l.slice(0, 28).trim() + "…" : l)}</button>`;
+    return `<button data-board="${esc(k)}" aria-pressed="${k === cr.board}" title="Show ${esc(l)}, with its own diagram and steps">${esc(l.length > 30 ? l.slice(0, 28).trim() + "…" : l)}</button>`;
   }).join("");
   $("quickGroup").textContent = "Outside groups";
 }
@@ -2884,7 +2884,7 @@ function renderInspector() {
     const count = b.nodes.filter((n) => n.group === item.id).length;
     el.innerHTML = `<div class="ihead"><span class="kind">Group</span><span class="muted">${count} box${count === 1 ? "" : "es"}</span></div>
       <label class="f">Name<input type="text" data-f="label" value="${esc(item.label)}" placeholder="e.g. Platform, Finance team"></label>
-      <div class="iacts"><button data-act="box-here">Add a box here</button><button data-act="delete">Delete group</button></div>`;
+      <div class="iacts"><button data-act="box-here" title="Add a new box inside this group">Add a box here</button><button data-act="delete" title="Delete this group. Its boxes stay, outside any group (Delete)">Delete group</button></div>`;
     return;
   }
   const nameOf = (id) => esc(b.nodes.find((n) => n.id === id)?.label || b.groups.find((g) => g.id === id)?.label || "Box");
@@ -2903,7 +2903,7 @@ function renderInspector() {
       <label class="f">Group<select data-f="group"><option value="">No group</option>${groupOpts}<option value="__new">New group</option></select></label>
     </div>
     ${arrows.length ? `<div class="arrows">${arrows.join("")}</div>` : ""}
-    <div class="iacts"><button data-act="connect">Draw an arrow from here</button><button data-act="delete">Delete box</button></div>`;
+    <div class="iacts"><button data-act="connect" title="Then click the box the arrow goes to (C)">Draw an arrow from here</button><button data-act="delete" title="Delete this box and its arrows (Delete)">Delete box</button></div>`;
 }
 
 function renderDiscovery() {
@@ -2915,11 +2915,11 @@ function renderDiscovery() {
       const k = `${sec.id}.${f}`, v = esc(sk.discovery[k] || "");
       return `<label>${esc(label)}${multi ? `<textarea data-d="${k}" rows="2" placeholder="${esc(ph)}">${v}</textarea>` : `<input type="text" data-d="${k}" value="${v}" placeholder="${esc(ph)}">`}</label>`;
     }).join("");
-    const pains = sec.pains ? `<div class="dpains">${sk.pains.length ? sk.pains.map((p) => `<div><b>${esc(p.id)}</b>${esc(p.text || "not written yet")}${p.cost ? ` <span class="muted">(${esc(p.cost)})</span>` : ""}</div>`).join("") : '<span class="muted">No pains yet.</span>'}<div><button data-act="to-pains">Edit pains</button></div></div>` : "";
+    const pains = sec.pains ? `<div class="dpains">${sk.pains.length ? sk.pains.map((p) => `<div><b>${esc(p.id)}</b>${esc(p.text || "not written yet")}${p.cost ? ` <span class="muted">(${esc(p.cost)})</span>` : ""}</div>`).join("") : '<span class="muted">No pains yet.</span>'}<div><button data-act="to-pains" title="Open the Pains tab">Edit pains</button></div></div>` : "";
     return `<details class="dsec" data-sec="${sec.id}"${cr.open[sec.id] ? " open" : ""}><summary><span class="st">${esc(sec.title)}</span><span class="sum">${esc(first)}</span><span class="fill${filled === sec.fields.length ? " done" : ""}">${filled}/${sec.fields.length}</span></summary><div class="dbody">${pains}${fields}</div></details>`;
   }).join("");
   $("tab-discovery").innerHTML = `<div class="chead"><h3>Technical discovery</h3><p>Ask before you draw. Fill in what you hear, and label what you assume.</p></div>
-    <div class="dtools"><button data-act="expand">Expand all</button><button data-act="collapse">Collapse all</button></div>${html}`;
+    <div class="dtools"><button data-act="expand" title="Open every discovery section">Expand all</button><button data-act="collapse" title="Close every discovery section">Collapse all</button></div>${html}`;
 }
 function updateDiscoverySummary(sec) {
   const d = DISCOVERY.find((x) => x.id === sec), el = $("tab-discovery").querySelector(`details[data-sec="${sec}"]`);
@@ -2942,7 +2942,7 @@ function renderPains() {
         <input type="text" data-pf="cost" value="${esc(p.cost)}" placeholder="What it costs, e.g. ~2 days per request">
         ${sk.source ? `<div class="pstatus">${fileWhere(p.id).length ? `Tagged on steps ${fileWhere(p.id).join("; ")}` : "Not tagged on a step yet"}.</div>` : `<div class="pstatus">${a.length ? `Happens at ${a.join(", ")}` : "Not pinned to an as-is step yet"}. ${t.length ? `Removed by ${t.join(", ")}` : "Not removed yet"}.</div>`}</div>
         <button class="icon" data-act="del-pain" title="Delete pain" aria-label="Delete pain">×</button></li>`;
-    }).join("")}</ol><button class="add" data-act="add-pain">Add pain</button>`;
+    }).join("")}</ol><button class="add" data-act="add-pain" title="Add the next pain (P1, P2 …)">Add pain</button>`;
 }
 function addPain() {
   const n = Math.max(0, ...cr.sk.pains.map((p) => parseInt(p.id.slice(1), 10) || 0)) + 1;
@@ -2975,13 +2975,13 @@ function renderStepsTab() {
         <span class="sbtns"><button data-act="up" title="Move up" aria-label="Move up">↑</button><button data-act="down" title="Move down" aria-label="Move down">↓</button><button data-act="del-step" title="Delete step" aria-label="Delete step">×</button></span></div>
       ${fields}
       <div class="chips2"><span class="lbl">${file ? "Pains" : tobe ? "Removes" : "Pain here"}</span>${painBtns(t)}</div>
-      <div class="chips2"><span class="lbl">Linked</span><span class="blist">${boxChips(t)}</span><button class="linkbtn" data-act="link" aria-pressed="${i === cr.linking}">${i === cr.linking ? "Done" : "Link boxes"}</button></div>
+      <div class="chips2"><span class="lbl">Linked</span><span class="blist">${boxChips(t)}</span><button class="linkbtn" data-act="link" aria-pressed="${i === cr.linking}" title="${i === cr.linking ? "Stop linking (Esc)" : "Click boxes and arrows in the diagram to link them to this step, and click again to unlink"}">${i === cr.linking ? "Done" : "Link boxes"}</button></div>
     </li>`;
   }).join("");
   const title = file ? b.tableHeading || "Steps" : BOARDS[cr.board].steps;
   const help = file ? "The step table from the file. Edit any cell, link each step to its boxes, and tag the pains it touches." : tobe ? "The proposed process, in order. Tag every step with the pain it removes." : "The process today, in order. Pin each pain to the step where it happens.";
   $("tab-steps").innerHTML = `<div class="chead"><h3>${esc(title)}</h3><p>${help}</p></div>
-    <ol class="slist">${cards}</ol><button class="add" data-act="add-step">Add step</button>${tobe ? painCheck() : ""}`;
+    <ol class="slist">${cards}</ol><button class="add" data-act="add-step" title="Add a step at the end of this board">Add step</button>${tobe ? painCheck() : ""}`;
 }
 function painCheck() {
   const sk = cr.sk, steps = sk.boards.tobe.steps;
@@ -3154,7 +3154,7 @@ async function copyMd() {
 function openLoad() {
   const m = $("loadMenu"), all = listSketches();
   const when = (t) => (t ? new Date(t).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "");
-  m.innerHTML = all.length ? `<div class="mh">Saved in this browser</div>` + all.map((e) => `<button role="menuitemradio" data-id="${esc(e.id)}" aria-checked="${e.id === cr.sk?.id}"${e.ok ? "" : " disabled"}>
+  m.innerHTML = all.length ? `<div class="mh">Saved in this browser</div>` + all.map((e) => `<button role="menuitemradio" data-id="${esc(e.id)}" aria-checked="${e.id === cr.sk?.id}" title="${e.ok ? `Open ${esc(e.title || "this sketch")} in Edit mode` : "This sketch is damaged and can't be opened"}"${e.ok ? "" : " disabled"}>
       <span class="tick">${e.id === cr.sk?.id ? "✓" : ""}</span><span class="li"><span class="lt">${esc(e.title || "Untitled sketch")}</span>
       <span class="ls">${e.ok ? esc([e.source ? `Copy of ${e.source}` : "Sketch", when(e.updated)].filter(Boolean).join(", ")) : "Damaged, can't be opened"}</span></span></button>`).join("")
     : `<div class="mh">No saved sketches yet</div>`;
@@ -3186,18 +3186,18 @@ $("redoBtn").addEventListener("click", () => history(1));
 // The Actions menu: adding to the board, layout, sharing, and the sketch itself.
 function openActions() {
   const b = board(), dir = b.dir, pinned = Object.keys(b.pos).length;
-  const item = (act, label, key = "", extra = "") => `<button role="menuitem" data-act="${act}"${extra}><span class="tick"></span>${label}${key ? `<kbd>${key}</kbd>` : ""}</button>`;
-  const radio = (v, label) => `<button role="menuitemradio" data-act="dir" data-v="${v}" aria-checked="${dir === v}"><span class="tick">${dir === v ? "✓" : ""}</span>${label}</button>`;
+  const item = (act, label, key = "", extra = "", tip = "") => `<button role="menuitem" data-act="${act}"${extra} title="${esc(tip)}${key ? ` (${key})` : ""}"><span class="tick"></span>${label}${key ? `<kbd>${key}</kbd>` : ""}</button>`;
+  const radio = (v, label, tip) => `<button role="menuitemradio" data-act="dir" data-v="${v}" aria-checked="${dir === v}" title="${esc(tip)}"><span class="tick">${dir === v ? "✓" : ""}</span>${label}</button>`;
   const m = $("actionsMenu");
   m.innerHTML = `<div class="mh">Add to ${esc(boardLabel(cr.sk, cr.board))}</div>
-    ${Object.entries(SHAPE_NAMES).map(([v, l]) => item("shape", esc(l), v === (cr.shape || "box") ? "N" : "", ` data-v="${v}"`)).join("")}
-    ${item("group", "Group", "G")}${item("connect", cr.connect ? "Stop connecting" : "Connect two boxes", "C")}
+    ${Object.entries(SHAPE_NAMES).map(([v, l]) => item("shape", esc(l), v === (cr.shape || "box") ? "N" : "", ` data-v="${v}"`, `Add a new ${l.replace("🔒", "").trim().toLowerCase()} to this board`)).join("")}
+    ${item("group", "Group", "G", "", "Add a new group")}${item("connect", cr.connect ? "Stop connecting" : "Connect two boxes", "C", "", cr.connect ? "Stop drawing the arrow" : "Click the start box, then the end box")}
     <hr><div class="mh">Layout</div>
-    ${isFile(b) ? "" : radio("AUTO", "Auto direction")}${radio("LR", "Left to right")}${radio("TD", "Top down")}
-    ${item("reset", "Reset positions", "", pinned ? "" : " disabled")}
+    ${isFile(b) ? "" : radio("AUTO", "Auto direction", "Left to right or top down, whichever fits the screen better. The first drag fixes it")}${radio("LR", "Left to right", "Lay the board out from left to right")}${radio("TD", "Top down", "Lay the board out from top to bottom")}
+    ${item("reset", "Reset positions", "", pinned ? "" : " disabled", pinned ? "Unpin every moved box and let Mermaid lay out the board again" : "No box has been moved")}
     <hr><div class="mh">Share</div>
-    ${item("copy", "Copy Markdown")}${item("export", cr.sk.source ? "Export the edited copy (.md)" : "Export .md")}
-    <hr>${item("delete", `<span class="danger">Delete ${cr.sk.source ? "this copy" : "this sketch"}</span>`)}`;
+    ${item("copy", "Copy Markdown", "", "", "Copy the whole sketch as Markdown to the clipboard")}${item("export", cr.sk.source ? "Export the edited copy (.md)" : "Export .md", "", "", "Download the sketch as one Markdown file, with its diff log. Edit reopens it")}
+    <hr>${item("delete", `<span class="danger">Delete ${cr.sk.source ? "this copy" : "this sketch"}</span>`, "", "", cr.sk.source ? "Remove this copy from the browser, after a confirmation. The file is not affected" : "Remove this sketch from the browser, after a confirmation")}`;
   const r = $("actionsBtn").getBoundingClientRect();
   m.hidden = false;
   m.style.top = `${r.bottom + 6}px`;
@@ -3483,17 +3483,17 @@ $("diagramPane").addEventListener("contextmenu", (e) => {
   const slug = hit && [...(state.model?.nodes.values() || [])].find((n) => n.el === hit)?.id;
   const id = slug && cr.idMap.get(slug), b = board();
   const node = id && b.nodes.find((n) => n.id === id), group = id && b.groups.find((g) => g.id === id);
-  const shapes = (verb) => Object.entries(SHAPE_NAMES).map(([v, l]) => `<button role="menuitem" data-shape="${v}">${verb} ${esc(l.toLowerCase().replace("🔒", "").trim())}${v === "gate" ? " 🔒" : ""}</button>`).join("");
+  const shapes = (verb) => Object.entries(SHAPE_NAMES).map(([v, l]) => `<button role="menuitem" data-shape="${v}" title="${verb === "Add a connected" ? "Add it with an arrow from this box" : verb === "Add a" && group ? "Add it inside this group" : "Add it here, outside any group"}">${verb} ${esc(l.toLowerCase().replace("🔒", "").trim())}${v === "gate" ? " 🔒" : ""}</button>`).join("");
   let html;
   if (node) {
     cr.sel = { kind: "node", id }; renderInspector(); crHighlight();
     html = `<div class="mh">${esc(node.label || "Box")}</div>${shapes("Add a connected")}<hr>
-      <button role="menuitem" data-act="connect">Draw an arrow from here</button><button role="menuitem" data-act="rename">Rename</button>${b.pos[id] ? '<button role="menuitem" data-act="unpin">Reset position</button>' : ""}<button role="menuitem" data-act="delete">Delete box</button>`;
+      <button role="menuitem" data-act="connect" title="Then click the box the arrow goes to (C)">Draw an arrow from here</button><button role="menuitem" data-act="rename" title="Rename this box (Enter)">Rename</button>${b.pos[id] ? '<button role="menuitem" data-act="unpin" title="Unpin this box and let Mermaid place it again">Reset position</button>' : ""}<button role="menuitem" data-act="delete" title="Delete this box and its arrows (Delete)">Delete box</button>`;
   } else if (group) {
     cr.sel = { kind: "group", id }; renderInspector(); crHighlight();
-    html = `<div class="mh">In ${esc(group.label || "group")}</div>${shapes("Add a")}<hr><button role="menuitem" data-act="rename">Rename group</button><button role="menuitem" data-act="delete">Delete group</button>`;
+    html = `<div class="mh">In ${esc(group.label || "group")}</div>${shapes("Add a")}<hr><button role="menuitem" data-act="rename" title="Rename this group">Rename group</button><button role="menuitem" data-act="delete" title="Delete this group. Its boxes stay, outside any group (Delete)">Delete group</button>`;
   } else {
-    html = `${shapes("Add a")}<hr><button role="menuitem" data-act="group">Add a group</button>`;
+    html = `${shapes("Add a")}<hr><button role="menuitem" data-act="group" title="Add a new group (G)">Add a group</button>`;
   }
   const m = $("ctxmenu");
   m.innerHTML = html; m.hidden = false;
@@ -3540,7 +3540,7 @@ if (!(await loadFromServer())) {
     "<p>Start the server with <code>python3 serve.py path/to/file.md</code> and open the address it prints, or drop a Markdown file here.</p>" +
     "<p>The file needs a <code>```mermaid</code> diagram and a step table. The format is described in <code>format_specification.md</code>.</p>" +
     '<p>Or sketch one: <b>New</b> captures discovery, pains, the process today and the proposed architecture. <b>Load</b> reopens a sketch saved in this browser.</p>' +
-    '<button onclick="document.getElementById(\'fileInput\').click()">Open file</button> <button onclick="document.getElementById(\'newBtn\').click()">Start a new sketch</button> <button onclick="document.getElementById(\'loadBtn\').click()">Load a saved sketch</button>' +
+    '<button title="Open a Markdown file from disk" onclick="document.getElementById(\'fileInput\').click()">Open file</button> <button title="Start an empty sketch in Edit mode" onclick="document.getElementById(\'newBtn\').click()">Start a new sketch</button> <button title="Continue a sketch saved in this browser" onclick="document.getElementById(\'loadBtn\').click()">Load a saved sketch</button>' +
     '<p style="margin:14px 0 0">New here? The <a href="guide.html" target="_blank" rel="noopener">guide</a> explains every feature, and how an AI agent drafts a sketch from a meeting transcript on the stack you choose.</p>');
 }
 if (lsGet(SK_ON) === "on") enterEdit();
