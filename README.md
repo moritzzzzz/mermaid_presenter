@@ -1,39 +1,92 @@
-# Mermaid Architecture Viewer
+# Architecture Viewer
 
-An interactive walkthrough of a Mermaid flowchart and its step table, both from one Markdown file. Use it to present a process step by step in a demo.
+A browser tool for solutions architects. Run a **guided technical discovery**, **map the process** as it runs today with its pains, **design the proposed architecture** that removes them, and **present** both, step by step. Everything lives in one Markdown file that people and AI agents can read, write and version.
+
+![Edit mode: the proposed architecture of a deal desk approval, with step ④ selected and the pain it removes](screenshots/create.png)
+
+## What it is for
+
+| Stage | What the tool gives you |
+|---|---|
+| **1. Discover** | A structured discovery form: use case, current process, pains, quantification, blockers and risks, definition of success, decision process, rollout plan, open questions. Each section shows how complete it is. |
+| **2. Map the process today** | An **As-is process** board: draw the people, systems and handoffs, write the steps with who, tool and wait time, and pin each pain (P1, P2 …) to the step where it happens. Pains show in orange in the diagram. |
+| **3. Architect the solution** | A **Proposed architecture** board with its own diagram and steps: components grouped by system or team, human gates (🔒) where a person decides, an owner per step, and the pains each step removes. The **Pain check** flags pains no step removes and steps that remove none, and a scorecard holds a pilot measure per pain. |
+| **4. Present and hand over** | **Present** walks through either board step by step, or as an **Overview** with one box per group. **Export .md** writes everything into one Markdown file, with a plain-language diff log of every change. |
+
+It also presents existing architecture documents: any Markdown file with a Mermaid flowchart and a step table ([format](format_specification.md)) can be walked through, and edited as a copy.
+
+**Local and private.** It is one HTML file. Sketches are saved in your browser, and `serve.py` binds to localhost only. Use public or synthesized data in shared sessions.
+
+## Quick start
+
+```bash
+cd architecture_viewer
+python3 serve.py sample_sketch.md --open         # a process sketch: discovery, pains, as-is and proposed architecture
+python3 serve.py sample_architecture.md --open   # an architecture walkthrough (bookstore order flow)
+python3 serve.py                                 # ../architecture.md, or the bundled sample if that file doesn't exist
+python3 serve.py path/to/other.md --port 8001 --open
+```
+
+Then open http://127.0.0.1:8000/. Python 3.10+ standard library, nothing to install. The server serves the page and that one file, and reloads the page within about 2 seconds when the file changes.
+
+Without the server, open `index.html` in a browser, and use **New**, **Load** or **Open file**, or drop a Markdown file onto it. That works without live reload.
+
+The page loads Mermaid 11 (and, for the compact layout, its ELK plugin) from cdn.jsdelivr.net and IBM Plex fonts from Google Fonts, so it needs internet access.
+
+## A discovery session, step by step
+
+The screenshots show the bundled `sample_sketch.md`, **Deal desk discount approval** (synthesized): account execs ask for discounts by email, and Finance decides in the thread. Open it and click **Edit** to explore it, or start your own.
+
+**1. Start.** The start page and the top bar offer three ways in:
+- **Start a new sketch** (or **New**) opens an empty sketch in Edit mode.
+- **Load a saved sketch** (or **Load ▾**) lists the sketches saved in this browser. Pick one to continue it in Edit mode.
+- **Open file** opens a Markdown file. In Present mode it is shown; in Edit mode it is edited.
+
+![The start page: Open file, Start a new sketch and Load a saved sketch, with the Load menu open](screenshots/start.png)
+
+**2. Discover, capture the pains, and map the process today.**
+- Give the sketch a name in the second bar, and fill in **Discovery** as you ask.
+- In **Pains**, write each pain in the speaker's words, with what it costs.
+- On the **As-is process** board, draw the boxes: type `Account exec -> Sales ops inbox : email` in the bar at the bottom, or right-click the canvas.
+- In **Steps**, add the steps, **Link boxes** for each one (its boxes, and any arrow that should light up with it), and tag the pains that happen there. A tagged box shows `⚠ P1` in orange.
+- **Click a pain** in the Pains tab (its token, or anywhere in its row) to highlight where it happens: the boxes of the steps tagged with it, and its tag in the box label. Click it again, click the canvas, or press `Esc` to clear.
+
+![Edit mode, As-is board: pain P1 selected in the Pains tab, and the Finance manager box where it happens highlighted in orange](screenshots/pains.png)
+
+**3. Architect the proposed solution.**
+- Switch to **Proposed architecture** in the second bar. Each board has its **own diagram and its own steps**; Discovery and Pains are shared.
+- Draw it, or start an empty board from **Start from the standard pattern** and rename the boxes and groups.
+- Each proposed step has an **owner** (free text: a team, a system or a person), what happens, and the pains it **removes**.
+- The **Pain check** below the steps lists pains that no step removes yet.
+
+The screenshot at the top shows this board: step ④ selected, owned by the Approval service, removing P1.
+
+**4. Present and hand over.**
+- Click **Present**. The sketch shows on the board that was open, with its steps to click through, and the picker in the top bar switches between **As-is process** and **Proposed architecture**, each with its own steps.
+- Pains and the pains a step removes are shown in orange in the step details.
+- A board shows in Present even before it has steps: the steps pane then says so.
+- **Edit** goes back. **Actions → Export .md** saves everything as one Markdown file.
+
+![Present mode: the proposed architecture at step ④, with the owner, what happens, and the pain it removes in orange](screenshots/present.png)
+
+## Present mode
+
+Present walks through a diagram and its steps. It works for a sketch, and for any Markdown file in the viewer's format.
 
 - **Click a step** in the sidebar (or press ← / →, or Play). The view zooms to the step and highlights its boxes and arrows, plus what it touches.
 - **Click a box or group** in the diagram to see every step that uses it.
-- **Overview** (or `O`) collapses each group (environment) into one box and merges the arrows between groups, for presenting the overall architecture. Steps still work there. **Detail** goes back to every box. See section 6 of `format_specification.md`.
+- **Overview** (or `O`) collapses each group into one box and merges the arrows between groups, for the big picture. Steps still work there. **Detail** goes back to every box. See section 6 of `format_specification.md`.
+- **Several diagrams** (for example As-is process and Proposed architecture): the picker in the top bar switches between them, each with its own steps.
 - **Fit** (or `F`) shows the whole diagram. The minimap in the corner shows where you are: click or drag in it to move.
 - **Compact layout** (dropdown) uses Mermaid's ELK layout engine: a smaller diagram with right-angled arrows. The choice is remembered per browser.
-- **Edit the Markdown file** while the server runs, and the page updates within about 2 seconds.
-- **New**, **Load** and **Open file** (top bar, also on the start page) start a sketch, reopen one saved in this browser, or open a Markdown file.
-- **Edit** (top bar) edits what is shown, or sketches a new process live: discovery notes, pains, an as-is and a proposed architecture diagram, each with its own steps. Every change saves in the browser and goes into a diff log. **Export .md** writes a file in this viewer's format. **Present** switches back. See [Edit mode](#edit-mode).
 
-![Detail mode: step 6 of the sample highlighted, with its details in the sidebar](screenshots/detail.png)
+![Detail mode: step 6 of the bookstore sample highlighted, with its details in the sidebar](screenshots/detail.png)
 
 ![Overview mode: one box per group, with merged arrows labelled by step](screenshots/overview.png)
 
 *Both screenshots show `sample_architecture.md`, a fictional bookstore order flow, at step ⑥ "Payment confirmed". Top: **Detail**. Bottom: **Overview**.*
 
-## Run
-
-```bash
-cd architecture_viewer
-python3 serve.py sample_architecture.md --open   # the bundled sample
-python3 serve.py sample_sketch.md --open         # a sketch made in Edit mode
-python3 serve.py                      # ../architecture.md, or the sample if that file doesn't exist
-python3 serve.py path/to/other.md --port 8001 --open
-```
-
-Then open http://127.0.0.1:8000/. The server binds to localhost only and serves just the page and that one file. Python 3.10+ standard library, nothing to install.
-
-Without the server, open `index.html` in a browser and drop a Markdown file onto it. That works without live reload.
-
-The page loads Mermaid 11 (and, for the compact layout, its ELK plugin) from cdn.jsdelivr.net and IBM Plex fonts from Google Fonts, so it needs internet access.
-
-## Edit mode
+## Edit mode reference
 
 One button in the top bar switches between **Edit** and **Present**. In Present it reads **Edit**, and in Edit it reads **Present**.
 
@@ -49,44 +102,6 @@ One button in the top bar switches between **Edit** and **Present**. In Present 
 - **New** (top bar, also on the start page) starts an empty sketch in Edit mode.
 - **Load** (top bar, also on the start page) lists every sketch saved in this browser, newest first, and opens the one you pick in Edit mode.
 - **Open file** (top bar) opens a Markdown file. In Present mode it is shown; in Edit mode it is edited.
-
-Use it for a live discovery session: ask, note the pains, map the process as it runs today, then sketch the proposed architecture that removes the pains.
-
-### Walkthrough: from discovery to the proposed architecture
-
-The screenshots show a synthesized sample, **Deal desk discount approval**: account execs ask for discounts by email, and Finance decides in the thread. It is bundled as `sample_sketch.md`. Serve or open it, and click **Edit** to explore it in Edit mode, or follow the steps below to build your own.
-
-**1. Start.** The start page and the top bar offer three ways in:
-- **Start a new sketch** (or **New**) opens an empty sketch in Edit mode.
-- **Load a saved sketch** (or **Load ▾**) lists the sketches saved in this browser. Pick one to continue it in Edit mode.
-- **Open file** opens a Markdown file. In Present mode it is shown; in Edit mode it is edited.
-
-![The start page: Open file, Start a new sketch and Load a saved sketch, with the Load menu open](screenshots/start.png)
-
-**2. Capture the pains and map the process today.**
-- Give the sketch a name in the second bar, and fill in **Discovery** as you ask.
-- In **Pains**, write each pain in the speaker's words, with what it costs.
-- On the **As-is process** board, draw the boxes: type `Account exec -> Sales ops inbox : email` in the bar at the bottom, or right-click the canvas.
-- In **Steps**, add the steps, **Link boxes** for each one (its boxes, and any arrow that should light up with it), and tag the pains that happen there. A tagged box shows `⚠ P1` in orange.
-- **Click a pain** in the Pains tab (its token, or anywhere in its row) to highlight where it happens: the boxes of the steps tagged with it, and its tag in the box label. Click it again, click the canvas, or press `Esc` to clear.
-
-![Edit mode, As-is board: pain P1 selected in the Pains tab, and the Finance manager box where it happens highlighted in orange](screenshots/pains.png)
-
-**3. Sketch the proposed architecture.**
-- Switch to **Proposed architecture** in the second bar. Each board has its **own diagram and its own steps**; Discovery and Pains are shared.
-- Draw it, or start an empty board from **Start from the standard pattern** and rename the boxes and groups.
-- Each proposed step has an **owner** (free text: a team, a system or a person), what happens, and the pains it **removes**.
-- The **Pain check** below the steps lists pains that no step removes yet.
-
-![Edit mode, Proposed architecture board: step ④ selected, owned by the Approval service, removing P1](screenshots/create.png)
-
-**4. Present.**
-- Click **Present**. The sketch shows on the board that was open, with its steps to click through, and the picker in the top bar switches between **As-is process** and **Proposed architecture**, each with its own steps.
-- Pains and the pains a step removes are shown in orange in the step details.
-- A board shows in Present even before it has steps: the steps pane then says so.
-- **Edit** goes back. **Actions → Export .md** saves everything as one Markdown file.
-
-![Present mode: the proposed architecture at step ④, with the owner, what happens, and the pain it removes in orange](screenshots/present.png)
 
 **Sidebar tabs**
 - **Discovery:** a form for a solutions architect's technical discovery, in collapsible sections:
@@ -168,14 +183,22 @@ The screenshots show a synthesized sample, **Deal desk discount approval**: acco
 | Esc | Leave a Diffs preview, cancel connecting or linking, then clear the selection |
 | ⌘Z / ⇧⌘Z | Undo / redo |
 
+## Working with AI agents
+
+[`format_specification.md`](format_specification.md) is written so that an AI agent can produce files this tool opens:
+- **Architecture walkthroughs:** a Mermaid flowchart with a step table, for presenting a system or a request flow step by step (sections 1-7).
+- **Process sketches:** discovery, pains, the as-is process and the proposed architecture, as Markdown plus the sketch as JSON, so Edit mode opens it with everything (section 8).
+
+The spec has tested examples, a method for mapping a process, and a checklist. A typical loop: the agent drafts a sketch from discovery notes, you open it, refine it live with the customer in Edit mode, and export the result.
+
 ## Files
 
 | File | Purpose |
 |---|---|
-| `index.html` | The whole app: parser, linking, rendering, UI, Edit mode |
+| `index.html` | The whole app: discovery, process mapping and architecture editing (Edit mode), and the step-by-step presentation (Present mode) |
 | `serve.py` | Local server: `/` (page), `/api/source` (file text), `/api/mtime` (change polling) |
 | `format_specification.md` | How to write a compatible file, for people and AI agents: walkthrough files for architectures, and process sketches (as-is process, pains, proposed architecture), with tested examples and a checklist |
-| `sample_architecture.md` | A fictional sample (bookstore order flow) to try the viewer |
+| `sample_architecture.md` | An architecture walkthrough (fictional bookstore order flow) |
 | `sample_sketch.md` | A sketch exported from Edit mode (deal desk discount approval, synthesized): discovery, pains, both boards with their steps, and the pain scorecard. **Edit** reopens it as a sketch |
 | `screenshots/` | Detail and overview of the bookstore sample; the start page, Edit mode (pains, proposed architecture) and Present mode of the deal desk sketch |
 | `LICENSE`, `NOTICE` | Apache License 2.0 and the attribution notice |
