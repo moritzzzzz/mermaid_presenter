@@ -1,4 +1,4 @@
-# Architecture Viewer
+# Solutions Architecture Tool for Discovery, Process Mapping and Architecture Design
 
 A browser tool for solutions architects. Run a **guided technical discovery**, **map the process** as it runs today with its pains, **design the proposed architecture** that removes them, and **present** both, step by step. Everything lives in one Markdown file that people and AI agents can read, write and version.
 
